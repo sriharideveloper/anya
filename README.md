@@ -1,10 +1,10 @@
 # Anya AI
 
-### Turn product photos into a beautiful, WhatsApp-first storefront.
+### Turn one product photo into a beautiful, WhatsApp-first storefront.
 
-Anya AI is a planned AI storefront generator for local sellers and creators. A seller uploads a product image, Gemini turns it into structured merchandise, and Anya publishes it to a premium mobile storefront where customers can buy—or haggle—through WhatsApp.
+Anya AI is an AI storefront generator for local sellers and creators. A seller uploads a product image, Gemini converts it into structured merchandise, and Anya publishes it to a premium mobile storefront where customers can buy—or haggle—through WhatsApp.
 
-> **Current phase:** Pre-coding foundation complete. Application development is next.
+> **Build status:** Pre-coding foundation complete. MVP implementation begins during the official Codex Nightline sprint.
 
 | Project | Details |
 |---|---|
@@ -12,7 +12,20 @@ Anya AI is a planned AI storefront generator for local sellers and creators. A s
 | **Event** | [Codex Nightline 2026](https://www.codexnightline.in/) |
 | **Track** | Local Business & Creator Tools |
 | **Core stack** | Next.js App Router, Supabase, Gemini, SCSS Modules |
-| **Experience** | Mobile-first, dark, premium, WhatsApp-native |
+| **Core journey** | Product photo → AI merchandising → Storefront → WhatsApp |
+
+## Build Status
+
+- [x] Pre-coding architecture prepared
+- [ ] Next.js application scaffolded
+- [ ] Supabase connected
+- [ ] Product image upload implemented
+- [ ] Gemini merchandise generation implemented
+- [ ] Public storefront implemented
+- [ ] WhatsApp buy flow implemented
+- [ ] Natural-language product search
+- [ ] Malayalam storefront mode
+- [ ] Final deployment and demo recording
 
 ## The Idea
 
@@ -83,13 +96,11 @@ Never commit `.env.local` or any service-role/API key.
 
 ## Submission Proof
 
-The photograph below documents Srihari Muralikrishnan’s in-person participation at Codex Nightline, the OpenAI Build Week community hackathon hosted with Codex Community Kochi and Kochi Metro Rail Limited.
+The photograph below documents the builder’s presence at Codex Nightline 2026.
 
 <p align="center">
   <img src="./proof.jpg" alt="Srihari Muralikrishnan at Codex Nightline 2026" width="420" />
 </p>
-
-[View the original hosted photograph](https://i.ibb.co/v4hXKNJx/Whats-App-Image-2026-07-18-at-10-42-37-PM.jpg)
 
 ## Submission Declaration
 
