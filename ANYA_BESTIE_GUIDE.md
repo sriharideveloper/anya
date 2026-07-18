@@ -135,8 +135,8 @@ The master rulebook. Every AI coding agent that reads this will know EXACTLY how
 ### `.env.example`
 Template for your API keys. Copy to `.env.local` and fill in.
 
-### `research/`
-Market research, competitive analysis, and pitch bullet points.
+### Research notes
+The optional research folder is intentionally excluded from this submission repository. The product direction and pitch essentials needed for the sprint are summarized in this guide.
 
 ---
 
