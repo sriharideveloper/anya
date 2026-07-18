@@ -346,6 +346,18 @@ style: update product card hover animation
 refactor: extract WhatsApp URL logic to lib
 ```
 
+### Sprint Commit Discipline
+
+Git history is part of the Codex Nightline build evidence.
+
+1. Commit every meaningful, working vertical slice as soon as it passes a relevant check.
+2. Prefer small, reviewable commits over one large end-of-sprint dump.
+3. Commit viable file groups together; never split a change so the repository is knowingly broken.
+4. Use honest conventional messages such as `feat:`, `fix:`, `style:`, `refactor:`, `test:`, `docs:`, or `chore:`.
+5. Run the fastest relevant verification before committing, and run the full lint/build checks at milestones.
+6. Push after each stable milestone so the remote history documents progress during the sprint.
+7. Never fabricate, backdate, squash, or rewrite sprint history to make progress appear different from what occurred.
+
 ---
 
 ## ⚡ Performance Rules
