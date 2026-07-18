@@ -16,7 +16,7 @@
 .page header p { max-width: 680px; margin: 0; color: var(--text-secondary); font-size: 0.84rem; line-height: 1.65; }
 
 .workspace { display: grid; gap: 1rem; }
-.uploadCard, .editor, .empty, .inventory, .visualsSection { padding: 1rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-glass); box-shadow: 0 16px 45px rgba(78,46,33,.065); backdrop-filter: blur(20px); }
+.uploadCard, .editor, .empty, .generationPanel, .inventory, .visualsSection { padding: 1rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-glass); box-shadow: 0 16px 45px rgba(78,46,33,.065); backdrop-filter: blur(20px); }
 .dropzone { position: relative; display: grid; min-height: 360px; overflow: hidden; border: 1px dashed rgba(150,54,46,.42); border-radius: calc(var(--radius-lg) - 8px); background: rgba(150,54,46,.035); cursor: pointer; place-items: center; transition: border-color 0.25s ease, background .25s ease; }
 .dropzone:hover { border-color: var(--accent-primary); }
 .dropzone input { position: absolute; width: 1px; height: 1px; opacity: 0; }
@@ -33,12 +33,14 @@
 .visualControl select { min-width: 0; padding: .8rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); outline: 0; background: var(--bg-card); color: var(--text-primary); font-size: .7rem; }
 .message { margin: .75rem 0 0; color: var(--text-secondary); font-size: .68rem; line-height: 1.5; }
 .editor { display: flex; padding: 1.2rem; flex-direction: column; gap: .9rem; }
+.previewHeader { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: .55rem; }
+.previewHeader > strong { color: var(--accent-primary); font-size: .6rem; font-weight: 600; letter-spacing: .06em; }
 .ready { color: var(--accent-emerald); font-size: .62rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
 .editor label { display: grid; color: var(--text-secondary); font-size: .66rem; gap: .4rem; }
 .editor input, .editor textarea { width: 100%; min-width: 0; padding: .8rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); outline: 0; background: rgba(255,250,243,.92); color: var(--text-primary); }
 .editor input:focus, .editor textarea:focus { border-color: var(--accent-primary); }
 .editor textarea { min-height: 100px; resize: vertical; }
-.row { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
+.row { display: grid; gap: .65rem; }
 .tags { display: flex; flex-wrap: wrap; gap: .4rem; }
 .tags span { padding: .35rem .6rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-full); color: var(--accent-secondary); font-size: .6rem; }
 .publish { margin-top: auto; background: var(--accent-primary); color: #fffaf3; }
@@ -46,6 +48,26 @@
 .empty { display: grid; min-height: 300px; color: var(--text-secondary); text-align: center; place-items: center; align-content: center; }
 .empty span { color: var(--accent-primary); font-size: 2rem; }
 .empty p { font-size: .76rem; }
+
+.aiCard { display: grid; padding: 1rem; border: 1px solid rgba(150,54,46,.2); border-radius: var(--radius-md); background: linear-gradient(145deg, rgba(150,54,46,.07), rgba(255,255,255,.82)); gap: .85rem; }
+.aiCard > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.aiCard > div:first-child span { font-family: var(--font-heading); font-size: 1.15rem; }
+.aiCard > div:first-child strong { color: var(--accent-primary); font-size: .58rem; }
+.aiCard dl { display: grid; margin: 0; gap: .5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.aiCard dl div { display: grid; padding: .65rem; border-radius: 8px; background: rgba(255,255,255,.74); gap: .25rem; }
+.aiCard dt { color: var(--text-secondary); font-size: .52rem; letter-spacing: .08em; text-transform: uppercase; }
+.aiCard dd { margin: 0; color: var(--text-primary); font-size: .68rem; line-height: 1.4; }
+.aiCard blockquote { margin: 0; padding: .8rem; border-left: 2px solid var(--accent-primary); background: rgba(255,255,255,.68); color: var(--text-secondary); font-size: .65rem; line-height: 1.55; }
+.aiCard blockquote span { display: block; margin-bottom: .3rem; color: var(--accent-primary); font-size: .52rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+
+.generationPanel { display: flex; min-height: 300px; padding: 1.4rem; flex-direction: column; justify-content: center; }
+.generationPanel > span { color: var(--accent-primary); font-size: .58rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.generationPanel h2 { margin: .75rem 0 1rem; font-family: var(--font-heading); font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 400; line-height: 1; }
+.progress { width: 100%; height: 5px; overflow: hidden; border-radius: var(--radius-full); background: var(--bg-secondary); }
+.progress i { display: block; height: 100%; border-radius: inherit; background: var(--accent-primary); transition: width .6s cubic-bezier(.22,1,.36,1); }
+.generationPanel ol { display: grid; margin: 1.2rem 0 0; padding: 0; color: var(--text-secondary); gap: .4rem; list-style: none; font-size: .62rem; }
+.generationPanel li { opacity: .4; transition: opacity .25s ease, color .25s ease; }
+.generationPanel li.stageDone { color: var(--text-primary); opacity: 1; }
 
 .visualsSection, .inventory { margin-top: 1rem; padding: 1.2rem; }
 .visualsSection { display: grid; gap: 1.5rem; }
@@ -59,11 +81,28 @@
 .visualGrid span { position: absolute; right: .45rem; bottom: .45rem; left: .45rem; padding: .4rem; border-radius: 8px; background: rgba(43,29,25,.78); color: #fffaf3; font-size: .58rem; backdrop-filter: blur(10px); }
 .inventory > div:first-child { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
 .inventoryGrid { display: grid; margin-top: 1rem; gap: .55rem; }
-.inventoryGrid article { display: grid; padding: .5rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: rgba(255,250,243,.75); grid-template-columns: 64px 1fr; align-items: center; gap: .8rem; }
-.inventoryGrid article > div { position: relative; width: 64px; aspect-ratio: 1; overflow: hidden; border-radius: 10px; }
+.inventoryGrid article { display: grid; padding: .65rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: rgba(255,250,243,.75); grid-template-columns: 64px 1fr; align-items: center; gap: .8rem; }
+.inventoryImage { position: relative; width: 64px; aspect-ratio: 1; overflow: hidden; border-radius: 10px; }
 .inventoryGrid img { object-fit: cover; }
-.inventoryGrid article > span { display: grid; font-family: var(--font-heading); font-size: 1.1rem; gap: .25rem; }
+.inventoryInfo { display: grid; min-width: 0; gap: .22rem; }
+.inventoryInfo > a { overflow: hidden; font-family: var(--font-heading); font-size: 1.1rem; text-overflow: ellipsis; white-space: nowrap; transition: color .2s ease; }
+.inventoryInfo > a:hover { color: var(--accent-primary); }
 .inventoryGrid small { color: var(--accent-secondary); font-family: var(--font-body); font-size: .65rem; }
+.inventoryEditor { grid-column: 1 / -1; border-top: 1px solid var(--border-subtle); }
+.inventoryEditor summary { padding: .65rem 0 .15rem; color: var(--accent-primary); cursor: pointer; font-size: .6rem; font-weight: 600; list-style-position: inside; }
+.inventoryDetails { display: grid; margin-top: .65rem; gap: .5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.inventoryDetails label { display: grid; min-width: 0; color: var(--text-secondary); font-size: .54rem; gap: .28rem; }
+.inventoryDetails input, .inventoryDetails textarea { width: 100%; min-width: 0; padding: .58rem; border: 1px solid var(--border-subtle); border-radius: 7px; outline: 0; background: white; color: var(--text-primary); font: inherit; font-size: .64rem; }
+.inventoryDetails textarea { min-height: 80px; resize: vertical; }
+.inventoryDetails input:focus, .inventoryDetails textarea:focus { border-color: var(--accent-primary); }
+.wideField { grid-column: 1 / -1; }
+.managementActions { display: grid; margin-top: .55rem; gap: .4rem; grid-template-columns: 1fr 1fr; }
+.managementActions button { padding: .65rem; border: 1px solid var(--text-primary); border-radius: 7px; background: var(--text-primary); color: white; cursor: pointer; font-size: .58rem; font-weight: 600; }
+.managementActions button:nth-child(2) { background: transparent; color: var(--text-primary); }
+.managementActions button.deleteButton { grid-column: 1 / -1; border-color: rgba(150,54,46,.26); background: rgba(150,54,46,.07); color: var(--accent-primary); }
+.managementActions button:disabled { cursor: wait; opacity: .55; }
+.hiddenProduct { opacity: .72; }
+.hiddenProduct .inventoryImage { filter: grayscale(.75); }
 .noProducts { color: var(--text-secondary); font-size: .75rem; }
 
 .onboarding { display: grid; position: relative; min-height: calc(100vh - 2.5rem); padding: 1rem; overflow: hidden; place-items: center; }
@@ -79,8 +118,8 @@
 .onboarding small { color: var(--accent-secondary); }
 
 @media (min-width: 600px) {
+  .row { grid-template-columns: 1fr 1fr; }
   .visualGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .inventoryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (min-width: 820px) {
   .page { width: min(1160px, calc(100% - 4rem)); }
@@ -91,5 +130,5 @@
 }
 @media (min-width: 1120px) {
   .visualGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .inventoryGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .inventoryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

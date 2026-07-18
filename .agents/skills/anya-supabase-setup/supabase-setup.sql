@@ -31,6 +31,12 @@ create table if not exists public.products (
   title text not null check (char_length(trim(title)) between 1 and 160),
   description text,
   price numeric(10,2) check (price is null or price >= 0),
+  compare_at_price numeric(10,2)
+    constraint products_compare_at_price_nonnegative
+    check (compare_at_price is null or compare_at_price >= 0),
+  stock_quantity integer not null default 1
+    constraint products_stock_quantity_nonnegative
+    check (stock_quantity >= 0),
   category text,
   vibe_tags text[] not null default '{}',
   occasion text,
@@ -55,6 +61,36 @@ create table if not exists public.bundles (
 -- Upgrade compatibility for databases initialized with an earlier draft.
 alter table public.stores
   add column if not exists updated_at timestamptz not null default now();
+
+alter table public.products
+  add column if not exists compare_at_price numeric(10,2),
+  add column if not exists stock_quantity integer not null default 1;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.products'::regclass
+      and conname = 'products_compare_at_price_nonnegative'
+  ) then
+    alter table public.products
+      add constraint products_compare_at_price_nonnegative
+      check (compare_at_price is null or compare_at_price >= 0);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.products'::regclass
+      and conname = 'products_stock_quantity_nonnegative'
+  ) then
+    alter table public.products
+      add constraint products_stock_quantity_nonnegative
+      check (stock_quantity >= 0);
+  end if;
+end;
+$$;
 
 -- Indexes --------------------------------------------------------------------
 

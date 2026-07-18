@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
+const OPTIONAL_PRODUCT_COLUMNS = ['stock_quantity', 'compare_at_price', 'occasion'];
+
 function supabaseClient(key, authorization) {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -21,6 +23,36 @@ function decodeImage(dataUrl) {
   }
 
   return { buffer, mimeType: match[1] };
+}
+
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object, key);
+}
+
+function missingOptionalColumn(error) {
+  const errorText = [error?.message, error?.details, error?.hint].filter(Boolean).join(' ');
+  const isMissingColumn =
+    error?.code === 'PGRST204' ||
+    error?.code === '42703' ||
+    /column.+does not exist|schema cache/i.test(errorText);
+
+  if (!isMissingColumn) return '';
+  return OPTIONAL_PRODUCT_COLUMNS.find((column) => errorText.includes(column)) || '';
+}
+
+async function insertProduct(admin, productValues) {
+  const values = { ...productValues };
+
+  for (let attempt = 0; attempt <= OPTIONAL_PRODUCT_COLUMNS.length; attempt += 1) {
+    const result = await admin.from('products').insert(values).select('*').single();
+    if (!result.error) return result;
+
+    const missingColumn = missingOptionalColumn(result.error);
+    if (!missingColumn || !hasOwn(values, missingColumn)) return result;
+    delete values[missingColumn];
+  }
+
+  return { data: null, error: new Error('Product fields could not be saved.') };
 }
 
 export async function POST(request) {
@@ -57,6 +89,27 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Add a valid product name and price before publishing.' }, { status: 400 });
     }
 
+    const stockQuantity = hasOwn(product || {}, 'stockQuantity') ? Number(product.stockQuantity) : 1;
+    if (!Number.isInteger(stockQuantity) || stockQuantity < 0 || stockQuantity > 2147483647) {
+      return NextResponse.json({ error: 'Stock quantity must be a non-negative whole number.' }, { status: 400 });
+    }
+
+    let compareAtPrice = null;
+    if (hasOwn(product || {}, 'compareAtPrice') && product.compareAtPrice !== '' && product.compareAtPrice != null) {
+      compareAtPrice = Number(product.compareAtPrice);
+      if (!Number.isFinite(compareAtPrice) || compareAtPrice < 0) {
+        return NextResponse.json({ error: 'The original price must be a non-negative amount.' }, { status: 400 });
+      }
+    }
+
+    if (hasOwn(product || {}, 'occasion') && product.occasion != null && typeof product.occasion !== 'string') {
+      return NextResponse.json({ error: 'Occasion must be text.' }, { status: 400 });
+    }
+    const occasion = typeof product?.occasion === 'string' ? product.occasion.trim() : '';
+    if (occasion.length > 100) {
+      return NextResponse.json({ error: 'Occasion must be 100 characters or fewer.' }, { status: 400 });
+    }
+
     const admin = supabaseClient(process.env.SUPABASE_SERVICE_ROLE_KEY);
     const { data: store, error: storeError } = await admin
       .from('stores')
@@ -77,21 +130,20 @@ export async function POST(request) {
     if (uploadError) throw new Error(`Image upload failed: ${uploadError.message}`);
 
     const { data: publicData } = admin.storage.from('product-images').getPublicUrl(uploadedPath);
-    const { data: savedProduct, error: productError } = await admin
-      .from('products')
-      .insert({
-        store_id: store.id,
-        image_url: publicData.publicUrl,
-        title,
-        description,
-        price,
-        category: product?.category?.trim() || 'Boutique edit',
-        vibe_tags: Array.isArray(product?.vibeTags) ? product.vibeTags.slice(0, 8) : [],
-        ai_generated: true,
-        is_active: true,
-      })
-      .select('*')
-      .single();
+    const { data: savedProduct, error: productError } = await insertProduct(admin, {
+      store_id: store.id,
+      image_url: publicData.publicUrl,
+      title,
+      description,
+      price,
+      compare_at_price: compareAtPrice,
+      stock_quantity: stockQuantity,
+      category: product?.category?.trim() || 'Boutique edit',
+      vibe_tags: Array.isArray(product?.vibeTags) ? product.vibeTags.slice(0, 8) : [],
+      occasion: occasion || null,
+      ai_generated: true,
+      is_active: true,
+    });
 
     if (productError) {
       await admin.storage.from('product-images').remove([uploadedPath]);

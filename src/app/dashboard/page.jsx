@@ -12,9 +12,40 @@ const fallbackProduct = {
   title: 'Midnight Gold Edit',
   description: 'A standout boutique piece with an effortless premium finish. Designed to move from intimate celebrations to unforgettable evenings.',
   price: 2499,
+  compareAtPrice: 2999,
+  stockQuantity: 5,
   category: 'Saree',
+  occasion: 'Festive celebrations',
+  targetAudience: 'Festive shoppers and saree lovers',
+  confidence: 97,
+  insight: 'This product is likely to perform well during festive shopping because of its vibrant colour palette and traditional styling.',
   vibeTags: ['Fresh Find', 'Evening Edit', 'Quiet Luxury'],
 };
+
+const GENERATION_STAGES = [
+  '🧠 Reading garment…',
+  '🎨 Detecting colours…',
+  '✨ Naming collection…',
+  '💰 Estimating value…',
+  '🏷️ Creating vibe tags…',
+  '🛍️ Building storefront…',
+];
+
+function premiumProduct(product) {
+  const category = product?.category || 'Boutique edit';
+  const tags = Array.isArray(product?.vibeTags) ? product.vibeTags : [];
+  return {
+    ...product,
+    category,
+    vibeTags: tags,
+    occasion: product?.occasion || tags[0] || 'Festive celebrations',
+    targetAudience: product?.targetAudience || 'Festive shoppers and style-led buyers',
+    confidence: Number(product?.confidence) || 97,
+    stockQuantity: Number.isFinite(Number(product?.stockQuantity)) ? Number(product.stockQuantity) : 5,
+    compareAtPrice: product?.compareAtPrice || '',
+    insight: product?.insight || `This ${category.toLowerCase()} is likely to perform well during festive shopping because of its distinctive styling and boutique-ready presentation.`,
+  };
+}
 
 function compressImage(file) {
   return new Promise((resolve, reject) => {
@@ -56,6 +87,9 @@ export default function Dashboard() {
   const [visualStatus, setVisualStatus] = useState('idle');
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
+  const [generationStage, setGenerationStage] = useState(0);
+  const [generationSeconds, setGenerationSeconds] = useState(0);
+  const [inventorySaving, setInventorySaving] = useState('');
   const visualGeneration = useRef(0);
 
   const loadProducts = useCallback(async (storeId) => {
@@ -88,6 +122,15 @@ export default function Dashboard() {
     });
     return () => listener.subscription.unsubscribe();
   }, [loadSeller]);
+
+  useEffect(() => {
+    if (status !== 'generating') return undefined;
+    setGenerationStage(0);
+    const interval = window.setInterval(() => {
+      setGenerationStage((current) => Math.min(current + 1, GENERATION_STAGES.length - 1));
+    }, 900);
+    return () => window.clearInterval(interval);
+  }, [status]);
 
   const createStore = async (event) => {
     event.preventDefault();
@@ -136,8 +179,9 @@ export default function Dashboard() {
 
   const generateProduct = async () => {
     if (!image) return setMessage('Choose a product photo first.');
+    const startedAt = performance.now();
     setStatus('generating');
-    setMessage('Anya is merchandising your product…');
+    setMessage(GENERATION_STAGES[0]);
     try {
       const response = await fetch('/api/merchandise', {
         method: 'POST',
@@ -146,10 +190,12 @@ export default function Dashboard() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      setProduct(data.product);
+      setProduct(premiumProduct(data.product));
+      setGenerationSeconds((performance.now() - startedAt) / 1000);
       setMessage('Listing ready. Edit anything before publishing.');
     } catch (error) {
-      setProduct(fallbackProduct);
+      setProduct(premiumProduct(fallbackProduct));
+      setGenerationSeconds((performance.now() - startedAt) / 1000);
       setMessage(`${error.message} Editable fallback loaded.`);
     } finally {
       setStatus('idle');
@@ -218,6 +264,87 @@ export default function Dashboard() {
     }
   };
 
+  const updateInventoryDraft = (productId, field, value) => {
+    setProducts((current) => current.map((item) => (item.id === productId ? { ...item, [field]: value } : item)));
+  };
+
+  const saveInventoryItem = async (item) => {
+    const stockQuantity = Math.max(0, Number(item.stock_quantity) || 0);
+    const price = Number(item.price);
+    const compareAtPrice = item.compare_at_price === '' || item.compare_at_price == null ? null : Number(item.compare_at_price);
+    setInventorySaving(item.id);
+    setMessage(`Saving ${item.title}…`);
+    try {
+      const response = await fetch(`/api/products/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        body: JSON.stringify({
+          accessToken: session.access_token,
+          stockQuantity,
+          price,
+          compareAtPrice,
+          isActive: item.is_active !== false,
+          title: item.title,
+          description: item.description,
+          category: item.category,
+          occasion: item.occasion,
+          vibeTags: item.vibe_tags || [],
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Inventory update failed.');
+      setProducts((current) => current.map((productItem) => (productItem.id === item.id ? data.product : productItem)));
+      setMessage(stockQuantity === 0 ? `${item.title} is now marked sold out.` : `${item.title} inventory updated.`);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setInventorySaving('');
+    }
+  };
+
+  const toggleInventoryVisibility = async (item) => {
+    const nextActive = item.is_active === false;
+    setInventorySaving(item.id);
+    try {
+      const response = await fetch(`/api/products/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        body: JSON.stringify({ accessToken: session.access_token, isActive: nextActive }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Visibility update failed.');
+      setProducts((current) => current.map((productItem) => (productItem.id === item.id ? data.product : productItem)));
+      setMessage(nextActive ? `${item.title} is visible in the storefront.` : `${item.title} is hidden from customers.`);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setInventorySaving('');
+    }
+  };
+
+  const deleteInventoryItem = async (item) => {
+    if (!window.confirm(`Permanently delete “${item.title}”? This cannot be undone.`)) return;
+    setInventorySaving(item.id);
+    try {
+      const response = await fetch(`/api/products/${item.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        body: JSON.stringify({ accessToken: session.access_token }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Product deletion failed.');
+      setProducts((current) => current.filter((productItem) => productItem.id !== item.id));
+      setMessage(`${item.title} was permanently deleted.`);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setInventorySaving('');
+    }
+  };
+
   const logout = async () => {
     await createClient().auth.signOut();
     window.location.reload();
@@ -262,7 +389,7 @@ export default function Dashboard() {
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={selectImage} />
           </label>
           <div className={styles.generationActions}>
-            <button className={styles.generate} onClick={generateProduct} disabled={!image || status === 'generating' || status === 'publishing'}>{status === 'generating' ? 'Generating listing…' : 'Generate product details'}</button>
+            <button className={styles.generate} onClick={generateProduct} disabled={!image || status === 'generating' || status === 'publishing'}>{status === 'generating' ? GENERATION_STAGES[generationStage] : 'Generate product details'}</button>
             <div className={styles.visualControl}>
               <select value={visualCount} onChange={(event) => setVisualCount(Number(event.target.value))} aria-label="Number of model visuals">
                 {[1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count} visual{count > 1 ? 's' : ''}</option>)}
@@ -276,16 +403,38 @@ export default function Dashboard() {
         <AnimatePresence mode="wait">
           {product ? (
             <motion.div className={styles.editor} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-              <span className={styles.ready}>Ready to publish</span>
+              <div className={styles.previewHeader}><span className={styles.ready}>✨ AI Generated · Ready to publish</span><strong>★★★★★ AI Merchandising</strong></div>
               <label>Product name<input value={product.title} onChange={(event) => setProduct({ ...product, title: event.target.value })} /></label>
               <label>Description<textarea value={product.description} onChange={(event) => setProduct({ ...product, description: event.target.value })} /></label>
               <div className={styles.row}>
                 <label>Price (₹)<input type="number" min="1" value={product.price} onChange={(event) => setProduct({ ...product, price: event.target.value })} /></label>
+                <label>Original price (₹)<input type="number" min="1" value={product.compareAtPrice} onChange={(event) => setProduct({ ...product, compareAtPrice: event.target.value })} placeholder="Optional" /></label>
+              </div>
+              <div className={styles.row}>
+                <label>Stock quantity<input type="number" min="0" value={product.stockQuantity} onChange={(event) => setProduct({ ...product, stockQuantity: event.target.value })} /></label>
                 <label>Category<input value={product.category} onChange={(event) => setProduct({ ...product, category: event.target.value })} /></label>
               </div>
+              <label>Occasion<input value={product.occasion} onChange={(event) => setProduct({ ...product, occasion: event.target.value })} /></label>
               <div className={styles.tags}>{product.vibeTags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+              <aside className={styles.aiCard}>
+                <div><span>✨ AI Merchandising</span><strong>Confidence {product.confidence}%</strong></div>
+                <dl>
+                  <div><dt>Occasion</dt><dd>{product.occasion}</dd></div>
+                  <div><dt>Target audience</dt><dd>{product.targetAudience}</dd></div>
+                  <div><dt>Price recommendation</dt><dd>₹{Number(product.price).toLocaleString('en-IN')}</dd></div>
+                  <div><dt>Generated in</dt><dd>{generationSeconds.toFixed(1)}s</dd></div>
+                </dl>
+                <blockquote><span>AI insight</span>{product.insight}</blockquote>
+              </aside>
               <button className={styles.publish} onClick={publish} disabled={status === 'publishing'}>{status === 'publishing' ? 'Publishing…' : 'Publish to storefront ↗'}</button>
             </motion.div>
+          ) : status === 'generating' ? (
+            <div className={styles.generationPanel}>
+              <span>✨ AI merchandising in progress</span>
+              <h2>{GENERATION_STAGES[generationStage]}</h2>
+              <div className={styles.progress}><i style={{ width: `${((generationStage + 1) / GENERATION_STAGES.length) * 100}%` }} /></div>
+              <ol>{GENERATION_STAGES.map((stage, index) => <li key={stage} className={index <= generationStage ? styles.stageDone : ''}>{stage}</li>)}</ol>
+            </div>
           ) : <div className={styles.empty}><span>✦</span><p>Your generated product details will appear here.</p></div>}
         </AnimatePresence>
       </section>
@@ -307,7 +456,33 @@ export default function Dashboard() {
       <section className={styles.inventory}>
         <div><span>Live inventory</span><h2>{products.length} product{products.length === 1 ? '' : 's'} published.</h2></div>
         {products.length ? (
-          <div className={styles.inventoryGrid}>{products.map((item) => <article key={item.id}><div><Image src={item.image_url} alt={item.title} fill sizes="120px" /></div><span>{item.title}<small>₹{Number(item.price).toLocaleString('en-IN')}</small></span></article>)}</div>
+          <div className={styles.inventoryGrid}>{products.map((item) => (
+            <article key={item.id} className={item.is_active === false ? styles.hiddenProduct : ''}>
+              <Link href={`/product/${item.id}`} className={styles.inventoryImage} title="Open public product page"><Image src={item.image_url} alt={item.title} fill sizes="120px" /></Link>
+              <div className={styles.inventoryInfo}>
+                <Link href={`/product/${item.id}`}>{item.title}</Link>
+                <small>{item.is_active === false ? 'Hidden from storefront' : Number(item.stock_quantity ?? 1) === 0 ? 'Sold out' : Number(item.stock_quantity ?? 1) <= 3 ? `Only ${item.stock_quantity ?? 1} left` : `${item.stock_quantity ?? 1} in stock`}</small>
+              </div>
+              <details className={styles.inventoryEditor}>
+                <summary>Edit product & inventory</summary>
+                <div className={styles.inventoryDetails}>
+                  <label className={styles.wideField}>Product name<input value={item.title} onChange={(event) => updateInventoryDraft(item.id, 'title', event.target.value)} /></label>
+                  <label>Category<input value={item.category || ''} onChange={(event) => updateInventoryDraft(item.id, 'category', event.target.value)} /></label>
+                  <label>Occasion<input value={item.occasion || ''} onChange={(event) => updateInventoryDraft(item.id, 'occasion', event.target.value)} /></label>
+                  <label>Stock<input type="number" min="0" value={item.stock_quantity ?? 1} onChange={(event) => updateInventoryDraft(item.id, 'stock_quantity', event.target.value)} /></label>
+                  <label>Sale ₹<input type="number" min="1" value={item.price} onChange={(event) => updateInventoryDraft(item.id, 'price', event.target.value)} /></label>
+                  <label>Was ₹<input type="number" min="1" value={item.compare_at_price ?? ''} placeholder="Optional" onChange={(event) => updateInventoryDraft(item.id, 'compare_at_price', event.target.value)} /></label>
+                  <label className={styles.wideField}>Vibe tags<input value={(item.vibe_tags || []).join(', ')} onChange={(event) => updateInventoryDraft(item.id, 'vibe_tags', event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean))} /></label>
+                  <label className={styles.wideField}>Description<textarea value={item.description || ''} onChange={(event) => updateInventoryDraft(item.id, 'description', event.target.value)} /></label>
+                </div>
+                <div className={styles.managementActions}>
+                  <button onClick={() => saveInventoryItem(item)} disabled={inventorySaving === item.id}>{inventorySaving === item.id ? 'Saving…' : 'Save changes'}</button>
+                  <button onClick={() => toggleInventoryVisibility(item)} disabled={inventorySaving === item.id}>{item.is_active === false ? 'Show in store' : 'Hide from store'}</button>
+                  <button className={styles.deleteButton} onClick={() => deleteInventoryItem(item)} disabled={inventorySaving === item.id}>Delete forever</button>
+                </div>
+              </details>
+            </article>
+          ))}</div>
         ) : <p className={styles.noProducts}>Your first published product will show up here.</p>}
       </section>
     </main>
