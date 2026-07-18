@@ -47,7 +47,6 @@ This repository is intentionally in its pre-coding phase. The implementation rul
 |   |-- skills.json               # Registered project skills
 |   `-- skills/                   # 11 reusable Anya implementation skills
 |-- .env.example                  # Required service configuration
-|-- ANYA_BESTIE_GUIDE.md          # Sprint, product, and demo playbook
 |-- proof.jpg                     # Event participation proof
 `-- README.md
 ```
