@@ -23,16 +23,23 @@ export default function Home() {
       </nav>
 
       <section className={styles.hero}>
-        <span className={styles.kicker}><i /> Your storefront is one photo away</span>
+        <span className={styles.kicker}><i /> AI commerce for local businesses</span>
         <h1>From camera roll<br />to <em>sold.</em></h1>
         <p>
-          Anya turns a product photo into a polished storefront and sends every
-          serious buyer straight to WhatsApp.
+          Anya gives every local boutique an AI merchandiser, campaign studio and
+          WhatsApp storefront—from one product photo, in under a minute.
         </p>
         <div className={styles.actions}>
           <Link href="/dashboard" className={styles.primary}>Build my storefront <span>↗</span></Link>
           <a href="#how-it-works" className={styles.secondary}>See how it works</a>
         </div>
+      </section>
+
+      <section className={styles.impact} aria-label="Anya impact">
+        <div><strong>1</strong><span>photo to launch</span></div>
+        <div><strong>&lt;60s</strong><span>to a sellable listing</span></div>
+        <div><strong>0%</strong><span>marketplace commission</span></div>
+        <div><strong>WhatsApp</strong><span>the checkout buyers know</span></div>
       </section>
 
       <section className={styles.showcase}>
