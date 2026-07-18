@@ -7,6 +7,12 @@ function formatPrice(price) {
   return value.toLocaleString('en-IN', { maximumFractionDigits: 2 });
 }
 
+function normalizePhone(phone) {
+  const cleanPhone = String(phone || '').replace(/\D/g, '');
+  if (!/^\d{10,15}$/.test(cleanPhone)) throw new Error('Invalid WhatsApp number.');
+  return cleanPhone;
+}
+
 function normalizeVibeTags(vibeTags) {
   const tags = Array.isArray(vibeTags)
     ? vibeTags
@@ -28,11 +34,10 @@ export function createWhatsAppUrl({
   vibe_tags: legacyVibeTags,
   mode = 'buy',
 }) {
-  const cleanPhone = String(phone || '').replace(/\D/g, '');
+  const cleanPhone = normalizePhone(phone);
   const cleanTitle = String(title || productTitle || '').trim();
   const cleanPrice = Number(price);
 
-  if (!/^\d{10,15}$/.test(cleanPhone)) throw new Error('Invalid WhatsApp number.');
   if (!cleanTitle || !Number.isFinite(cleanPrice)) throw new Error('Invalid product details.');
 
   const formattedPrice = formatPrice(cleanPrice);
@@ -75,6 +80,53 @@ I'd love to know:
 • Delivery options
 
 Thank you! 😊`;
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+
+export function createBundleWhatsAppUrl({ phone, items, storeName, malayalam = false }) {
+  const cleanPhone = normalizePhone(phone);
+  const cleanItems = (Array.isArray(items) ? items : []).map((item) => ({
+    title: String(item?.title || '').trim(),
+    price: Number(item?.price),
+  }));
+
+  if (cleanItems.length < 2 || cleanItems.some((item) => !item.title || !Number.isFinite(item.price) || item.price < 0)) {
+    throw new Error('Invalid bundle details.');
+  }
+
+  const itemList = cleanItems.map((item) => `• *${item.title}* — ₹${formatPrice(item.price)}`).join('\n');
+  const total = cleanItems.reduce((sum, item) => sum + item.price, 0);
+  const cleanStoreName = String(storeName || 'your boutique').trim();
+  const message = malayalam
+    ? `✨ *Anya AI സ്റ്റൈൽ ബണ്ടിൽ*
+
+നമസ്കാരം ${cleanStoreName}! ഈ രണ്ട് ഇനങ്ങൾ ഒരുമിച്ച് ഓർഡർ ചെയ്യാൻ ആഗ്രഹിക്കുന്നു:
+
+${itemList}
+
+💰 *ആകെ തുക: ₹${formatPrice(total)}*
+
+രണ്ടും ലഭ്യമാണോ? ഡെലിവറി വിശദാംശങ്ങൾ അറിയിക്കാമോ?`
+    : `✨ *Anya AI styled bundle*
+
+Hi ${cleanStoreName}! I'd like to order these two pieces together:
+
+${itemList}
+
+💰 *Bundle total: ₹${formatPrice(total)}*
+
+Are both available? Please share the delivery details. Thank you!`;
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+
+export function createStoreWhatsAppUrl({ phone, storeName, malayalam = false }) {
+  const cleanPhone = normalizePhone(phone);
+  const cleanStoreName = String(storeName || 'your boutique').trim();
+  const message = malayalam
+    ? `നമസ്കാരം ${cleanStoreName}! നിങ്ങളുടെ Anya AI ശോപ്പ് കണ്ടു. ശേഖരത്തെക്കുറിച്ച് ഒരു ചോദ്യം ഉണ്ട്.`
+    : `Hi ${cleanStoreName}! I found your Anya AI storefront and have a question about the collection.`;
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }

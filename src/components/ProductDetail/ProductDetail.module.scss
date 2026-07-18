@@ -270,6 +270,8 @@
   }
 }
 
+.actionsNoHaggle .share { grid-column: 1 / -1; }
+
 .buy {
   grid-column: 1 / -1;
   background: var(--brown-deep);
@@ -410,6 +412,8 @@
 
 @media (min-width: 560px) {
   .actions { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, .8fr); }
+  .actionsNoHaggle { grid-template-columns: minmax(0, 1.55fr) minmax(0, .8fr); }
+  .actionsNoHaggle .share { grid-column: auto; }
   .buy { grid-column: auto; }
   .socials { grid-template-columns: repeat(7, 1fr); }
 }

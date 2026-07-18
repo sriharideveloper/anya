@@ -300,6 +300,14 @@
     box-shadow 0.2s ease;
 }
 
+.actions button[hidden] {
+  display: none;
+}
+
+.actions button[hidden] + button {
+  grid-column: 1 / -1;
+}
+
 .actions button:first-child {
   grid-column: 1 / -1;
   border-color: var(--accent-emerald);

@@ -30,7 +30,6 @@ export const metadata = {
   authors: [{ name: 'Srihari Muralikrishnan' }],
   creator: 'Srihari Muralikrishnan',
   category: 'technology',
-  alternates: { canonical: '/' },
   icons: { icon: '/anya-mark.svg' },
   openGraph: {
     title: 'Anya AI — From camera roll to sold',

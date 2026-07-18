@@ -128,7 +128,8 @@ create trigger products_set_updated_at
 
 -- Public storefront view. security_invoker keeps table RLS in force. ----------
 
-create or replace view public.products_with_badges
+drop view if exists public.products_with_badges;
+create view public.products_with_badges
 with (security_invoker = true)
 as
 select
@@ -237,16 +238,22 @@ create policy "Store owners manage bundles"
     exists (
       select 1
       from public.products as p
+      join public.products as recommended on recommended.id = recommended_product_id
       join public.stores as s on s.id = p.store_id
-      where p.id = product_id and s.owner_id = (select auth.uid())
+      where p.id = product_id
+        and recommended.store_id = p.store_id
+        and s.owner_id = (select auth.uid())
     )
   )
   with check (
     exists (
       select 1
       from public.products as p
+      join public.products as recommended on recommended.id = recommended_product_id
       join public.stores as s on s.id = p.store_id
-      where p.id = product_id and s.owner_id = (select auth.uid())
+      where p.id = product_id
+        and recommended.store_id = p.store_id
+        and s.owner_id = (select auth.uid())
     )
   );
 

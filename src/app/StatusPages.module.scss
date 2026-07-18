@@ -1,0 +1,97 @@
+.state {
+  display: grid;
+  min-height: calc(100vh - 2.5rem);
+  width: min(760px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 4rem 0;
+  text-align: center;
+  place-items: center;
+  align-content: center;
+}
+
+.mark {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: white;
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  place-items: center;
+}
+
+.state > span:not(.mark) {
+  margin-top: 1.4rem;
+  color: var(--accent-primary);
+  font-size: .65rem;
+  font-weight: 600;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.state h1 {
+  max-width: 700px;
+  margin: .8rem 0 1rem;
+  font-family: var(--font-heading);
+  font-size: clamp(3rem, 10vw, 6.5rem);
+  font-weight: 400;
+  letter-spacing: -.045em;
+  line-height: .88;
+}
+
+.state p {
+  max-width: 540px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: .8rem;
+  line-height: 1.7;
+}
+
+.actions {
+  display: flex;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .65rem;
+}
+
+.actions a,
+.actions button {
+  min-height: 44px;
+  padding: .85rem 1.1rem;
+  border: 1px solid var(--text-primary);
+  border-radius: var(--radius-full);
+  background: var(--text-primary);
+  color: white;
+  font-size: .7rem;
+  font-weight: 600;
+}
+
+.actions a:last-child {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.loader {
+  width: min(560px, 100%);
+}
+
+.loaderBar,
+.loaderTitle,
+.loaderLine {
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--bg-secondary) 20%, white 48%, var(--bg-secondary) 76%);
+  background-size: 220% 100%;
+  animation: shimmer 1.35s ease-in-out infinite;
+}
+
+.loaderBar { width: 5rem; height: .7rem; margin: 0 auto 1.5rem; }
+.loaderTitle { width: 85%; height: clamp(3rem, 10vw, 6rem); margin: 0 auto 1.5rem; border-radius: var(--radius-md); }
+.loaderLine { width: 66%; height: .8rem; margin: .55rem auto; }
+.loaderLine:last-child { width: 46%; }
+
+@keyframes shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}

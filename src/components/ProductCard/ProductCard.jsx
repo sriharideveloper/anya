@@ -25,7 +25,7 @@ async function copyShareUrl(url) {
   if (!copied) throw new Error('Clipboard copy was unavailable.');
 }
 
-export default function ProductCard({ product, phone, index = 0 }) {
+export default function ProductCard({ product, phone, haggleMode = false, index = 0 }) {
   const [shareState, setShareState] = useState('idle');
   const productHref = `/product/${encodeURIComponent(product.id)}`;
   const price = Number(product.price);
@@ -99,8 +99,8 @@ export default function ProductCard({ product, phone, index = 0 }) {
         />
         <span className={styles.badges}>
           {hasDiscount && <span className={styles.discountBadge}>{discountPercent}% off</span>}
-          {(product.is_trending || isNew) && (
-            <span className={styles.dropBadge}>{product.is_trending ? 'Trending now' : 'Just dropped'}</span>
+          {(product.is_trending || Number(product.view_count) > 50 || isNew) && (
+            <span className={styles.dropBadge}>{product.is_trending || Number(product.view_count) > 50 ? 'Trending now' : 'Just dropped'}</span>
           )}
         </span>
         {(isSoldOut || isLimited) && (
@@ -132,7 +132,7 @@ export default function ProductCard({ product, phone, index = 0 }) {
           <button type="button" onClick={() => checkout('buy')} disabled={isSoldOut}>
             {isSoldOut ? 'Sold out' : '❤️ Buy on WhatsApp'}
           </button>
-          <button type="button" onClick={() => checkout('haggle')} disabled={isSoldOut}>🤝 Haggle</button>
+          <button type="button" onClick={() => checkout('haggle')} disabled={isSoldOut} hidden={!haggleMode}>🤝 Haggle</button>
           <button type="button" onClick={shareProduct} aria-live="polite">
             {shareState === 'copied' ? '✓ Link copied' : shareState === 'failed' ? 'Copy failed' : '📤 Share'}
           </button>

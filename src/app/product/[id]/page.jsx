@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import ProductDetail from '@/components/ProductDetail/ProductDetail';
+import ProductViewTracker from '@/components/ProductViewTracker/ProductViewTracker';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -93,6 +94,7 @@ function normalizeStore(store) {
     slug: textOrEmpty(store?.store_slug ?? store?.slug),
     tagline: textOrEmpty(store?.tagline),
     phone: textOrEmpty(store?.whatsapp_number ?? store?.phone) || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '',
+    haggleMode: Boolean(store?.haggle_mode),
   };
 }
 
@@ -106,21 +108,11 @@ const getProductPageData = cache(async (id) => {
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
 
-    let { data: product, error } = await supabase
-      .from('products_with_badges')
+    const { data: product, error } = await supabase
+      .from('products')
       .select('*')
       .eq('id', id)
       .maybeSingle();
-
-    if (error || !product) {
-      const fallback = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      product = fallback.data;
-      error = fallback.error;
-    }
 
     if (error || !product || product.is_active === false) return null;
 
@@ -183,11 +175,32 @@ export default async function ProductPage({ params }) {
   const data = await getProductPageData(id);
   if (!data) notFound();
 
+  const shareUrl = `${siteUrl()}/product/${encodeURIComponent(data.product.id)}`;
+  const productSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: data.product.title,
+    image: data.product.imageUrl ? [data.product.imageUrl] : undefined,
+    description: data.product.description,
+    category: data.product.category,
+    brand: { '@type': 'Brand', name: data.store.name },
+    offers: {
+      '@type': 'Offer',
+      url: shareUrl,
+      priceCurrency: 'INR',
+      price: data.product.price,
+      availability: data.product.stockState === 'out' ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+    },
+  };
+
   return (
-    <ProductDetail
-      product={data.product}
-      store={data.store}
-      shareUrl={`${siteUrl()}/product/${encodeURIComponent(data.product.id)}`}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema).replace(/</g, '\\u003c') }}
+      />
+      <ProductViewTracker productId={data.product.id} />
+      <ProductDetail product={data.product} store={data.store} shareUrl={shareUrl} />
+    </>
   );
 }

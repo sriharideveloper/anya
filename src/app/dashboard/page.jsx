@@ -73,6 +73,16 @@ function slugify(value) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
+function storeSettings(store) {
+  return {
+    storeName: store?.store_name || '',
+    tagline: store?.tagline || '',
+    whatsapp: store?.whatsapp_number || '',
+    haggleMode: Boolean(store?.haggle_mode),
+    malayalamMode: Boolean(store?.malayalam_mode),
+  };
+}
+
 export default function Dashboard() {
   const [session, setSession] = useState(null);
   const [store, setStore] = useState(null);
@@ -90,6 +100,9 @@ export default function Dashboard() {
   const [generationStage, setGenerationStage] = useState(0);
   const [generationSeconds, setGenerationSeconds] = useState(0);
   const [inventorySaving, setInventorySaving] = useState('');
+  const [settingsForm, setSettingsForm] = useState(() => storeSettings());
+  const [settingsStatus, setSettingsStatus] = useState('idle');
+  const [settingsFeedback, setSettingsFeedback] = useState({ type: '', text: '' });
   const visualGeneration = useRef(0);
 
   const loadProducts = useCallback(async (storeId) => {
@@ -102,6 +115,7 @@ export default function Dashboard() {
     if (!activeSession?.user) {
       setSession(null);
       setStore(null);
+      setSettingsForm(storeSettings());
       setLoading(false);
       return;
     }
@@ -110,6 +124,7 @@ export default function Dashboard() {
     const supabase = createClient();
     const { data } = await supabase.from('stores').select('*').eq('owner_id', activeSession.user.id).maybeSingle();
     setStore(data || null);
+    setSettingsForm(storeSettings(data));
     if (data) await loadProducts(data.id);
     setLoading(false);
   }, [loadProducts]);
@@ -151,7 +166,10 @@ export default function Dashboard() {
     }).select().single();
 
     if (error) setMessage(error.message);
-    else setStore(data);
+    else {
+      setStore(data);
+      setSettingsForm(storeSettings(data));
+    }
     setStatus('idle');
   };
 
@@ -345,6 +363,54 @@ export default function Dashboard() {
     }
   };
 
+  const saveStoreSettings = async (event) => {
+    event.preventDefault();
+    const cleanWhatsapp = settingsForm.whatsapp.replace(/\D/g, '');
+    const storeName = settingsForm.storeName.trim();
+    const tagline = settingsForm.tagline.trim();
+
+    if (!storeName || storeName.length > 100) {
+      setSettingsFeedback({ type: 'error', text: 'Store name must be between 1 and 100 characters.' });
+      return;
+    }
+    if (tagline.length > 180) {
+      setSettingsFeedback({ type: 'error', text: 'Tagline must be 180 characters or fewer.' });
+      return;
+    }
+    if (!/^\d{10,15}$/.test(cleanWhatsapp)) {
+      setSettingsFeedback({ type: 'error', text: 'Add a WhatsApp number with its country code.' });
+      return;
+    }
+
+    setSettingsStatus('saving');
+    setSettingsFeedback({ type: '', text: '' });
+    try {
+      const response = await fetch(`/api/stores/${store.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        body: JSON.stringify({
+          accessToken: session.access_token,
+          storeName,
+          tagline,
+          whatsapp: cleanWhatsapp,
+          haggleMode: settingsForm.haggleMode,
+          malayalamMode: settingsForm.malayalamMode,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Store settings could not be saved.');
+
+      setStore(data.store);
+      setSettingsForm(storeSettings(data.store));
+      setSettingsFeedback({ type: 'success', text: 'Saved. Your public storefront is up to date.' });
+    } catch (error) {
+      setSettingsFeedback({ type: 'error', text: error.message });
+    } finally {
+      setSettingsStatus('idle');
+    }
+  };
+
   const logout = async () => {
     await createClient().auth.signOut();
     window.location.reload();
@@ -369,6 +435,10 @@ export default function Dashboard() {
     );
   }
 
+  const liveProductCount = products.filter((item) => item.is_active !== false).length;
+  const totalStock = products.reduce((sum, item) => sum + Math.max(0, Number(item.stock_quantity ?? 1) || 0), 0);
+  const totalViews = products.reduce((sum, item) => sum + Math.max(0, Number(item.view_count) || 0), 0);
+
   return (
     <main className={styles.page}>
       <nav>
@@ -381,6 +451,96 @@ export default function Dashboard() {
         <h1>Style it.<br /><em>Publish it.</em></h1>
         <p>Upload a saree, let Anya merchandise it, then create model-worn visuals with Nano Banana.</p>
       </header>
+
+      <motion.section
+        className={styles.storeSettings}
+        aria-labelledby="store-settings-title"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+      >
+        <div className={styles.settingsHeader}>
+          <div>
+            <span>Store settings</span>
+            <h2 id="store-settings-title">Your shop, in your voice.</h2>
+          </div>
+          <p>Changes appear on your live storefront.</p>
+        </div>
+        <form onSubmit={saveStoreSettings}>
+          <div className={styles.settingsFields}>
+            <label>
+              Store name
+              <input
+                value={settingsForm.storeName}
+                onChange={(event) => setSettingsForm({ ...settingsForm, storeName: event.target.value })}
+                maxLength={100}
+                autoComplete="organization"
+                required
+              />
+            </label>
+            <label>
+              Store tagline
+              <input
+                value={settingsForm.tagline}
+                onChange={(event) => setSettingsForm({ ...settingsForm, tagline: event.target.value })}
+                maxLength={180}
+                placeholder="A collection made to be remembered."
+              />
+            </label>
+            <label>
+              WhatsApp with country code
+              <input
+                value={settingsForm.whatsapp}
+                onChange={(event) => setSettingsForm({ ...settingsForm, whatsapp: event.target.value })}
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="919876543210"
+                maxLength={18}
+                required
+              />
+            </label>
+          </div>
+          <div className={styles.settingsControls}>
+            <label className={styles.modeToggle}>
+              <input
+                type="checkbox"
+                checked={settingsForm.haggleMode}
+                onChange={(event) => setSettingsForm({ ...settingsForm, haggleMode: event.target.checked })}
+              />
+              <span className={styles.toggleTrack} aria-hidden="true"><i /></span>
+              <span className={styles.toggleCopy}><strong>Haggle mode</strong><small>Invite friendly price conversations.</small></span>
+            </label>
+            <label className={styles.modeToggle}>
+              <input
+                type="checkbox"
+                checked={settingsForm.malayalamMode}
+                onChange={(event) => setSettingsForm({ ...settingsForm, malayalamMode: event.target.checked })}
+              />
+              <span className={styles.toggleTrack} aria-hidden="true"><i /></span>
+              <span className={styles.toggleCopy}><strong>Malayalam mode</strong><small>Welcome local shoppers bilingually.</small></span>
+            </label>
+            <button type="submit" disabled={settingsStatus === 'saving'}>
+              {settingsStatus === 'saving' ? 'Saving...' : 'Save store settings'}
+            </button>
+          </div>
+          {settingsFeedback.text && (
+            <p
+              className={settingsFeedback.type === 'error' ? styles.settingsError : styles.settingsSuccess}
+              role="status"
+              aria-live="polite"
+            >
+              {settingsFeedback.text}
+            </p>
+          )}
+        </form>
+      </motion.section>
+
+      <section className={styles.sellerPulse} aria-label="Storefront performance">
+        <div><span>Live products</span><strong>{liveProductCount}</strong></div>
+        <div><span>Units ready</span><strong>{totalStock}</strong></div>
+        <div><span>Product views</span><strong>{totalViews}</strong></div>
+        <div><span>Checkout</span><strong>WhatsApp</strong></div>
+      </section>
 
       <section className={styles.workspace}>
         <div className={styles.uploadCard}>

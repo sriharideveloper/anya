@@ -148,13 +148,15 @@ export default function ProductDetail({ product, store, shareUrl }) {
 
           <div className={styles.rating}><span>★★★★★</span> AI Merchandising</div>
 
-          <div className={styles.actions}>
+          <div className={`${styles.actions} ${store.haggleMode ? '' : styles.actionsNoHaggle}`}>
             <motion.button className={styles.buy} onClick={() => checkout('buy')} disabled={isSoldOut} whileHover={isSoldOut ? {} : { y: -2 }} whileTap={isSoldOut ? {} : { scale: 0.98 }}>
               <Icon name="bag" /> {isSoldOut ? 'Sold out' : 'Buy on WhatsApp'} <Icon name="arrow" />
             </motion.button>
-            <motion.button className={styles.haggle} onClick={() => checkout('haggle')} disabled={isSoldOut} whileHover={isSoldOut ? {} : { y: -2 }} whileTap={isSoldOut ? {} : { scale: 0.98 }}>
-              <Icon name="handshake" /> Haggle
-            </motion.button>
+            {store.haggleMode && (
+              <motion.button className={styles.haggle} onClick={() => checkout('haggle')} disabled={isSoldOut} whileHover={isSoldOut ? {} : { y: -2 }} whileTap={isSoldOut ? {} : { scale: 0.98 }}>
+                <Icon name="handshake" /> Haggle
+              </motion.button>
+            )}
             <motion.button className={`${styles.share} ${shareOpen ? styles.shareActive : ''}`} onClick={() => setShareOpen((open) => !open)} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} aria-expanded={shareOpen} aria-controls="product-share-panel">
               <Icon name={shareOpen ? 'close' : 'share'} /> Share
             </motion.button>

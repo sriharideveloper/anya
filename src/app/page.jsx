@@ -14,9 +14,28 @@ const features = [
   ['WhatsApp checkout', 'Buyers go from discovery to a ready-to-send order without learning a new flow.'],
 ];
 
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Anya AI',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  description: 'AI merchandising and WhatsApp-first storefronts for local boutiques and creators.',
+  creator: { '@type': 'Person', name: 'Srihari Muralikrishnan' },
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
+};
+
+export const metadata = {
+  alternates: { canonical: '/' },
+};
+
 export default function Home() {
   return (
     <main className={styles.page}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
+      />
       <nav className={styles.nav}>
         <Link href="/" className={styles.brand}>Anya<span>.</span></Link>
         <Link href="/dashboard" className={styles.navCta}>Open studio</Link>

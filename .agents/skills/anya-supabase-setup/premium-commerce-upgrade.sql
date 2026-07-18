@@ -33,4 +33,46 @@ begin
 end;
 $$;
 
+-- Refresh the public view so databases upgraded from an older schema expose
+-- stock and compare-at pricing to storefronts.
+drop view if exists public.products_with_badges;
+create view public.products_with_badges
+with (security_invoker = true)
+as
+select
+  p.*,
+  p.created_at > now() - interval '24 hours' as is_just_dropped,
+  p.view_count > 50 as is_trending
+from public.products as p
+where p.is_active = true;
+
+grant select on public.products_with_badges to anon, authenticated;
+
+-- A bundle may only pair products from the same store owned by the seller.
+drop policy if exists "Store owners manage bundles" on public.bundles;
+create policy "Store owners manage bundles"
+  on public.bundles for all to authenticated
+  using (
+    exists (
+      select 1
+      from public.products as p
+      join public.products as recommended on recommended.id = recommended_product_id
+      join public.stores as s on s.id = p.store_id
+      where p.id = product_id
+        and recommended.store_id = p.store_id
+        and s.owner_id = (select auth.uid())
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.products as p
+      join public.products as recommended on recommended.id = recommended_product_id
+      join public.stores as s on s.id = p.store_id
+      where p.id = product_id
+        and recommended.store_id = p.store_id
+        and s.owner_id = (select auth.uid())
+    )
+  );
+
 commit;
