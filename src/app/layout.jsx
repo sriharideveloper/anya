@@ -18,6 +18,13 @@ const instrumentSerif = Instrument_Serif({
   variable: '--font-instrument',
 });
 
+const tickerItems = [
+  '✦ ONE PHOTO TO STOREFRONT',
+  '✦ MADE FOR KERALA BOUTIQUES',
+  '✦ WHATSAPP-FIRST COMMERCE',
+  '✦ ഒരു ചിത്രം · ഒരു കട',
+];
+
 export const metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -51,12 +58,11 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${poppins.variable} ${instrumentSerif.variable}`}>
       <body>
         <div className="heritageTicker" aria-hidden="true">
-          <span>✦ ONE PHOTO TO STOREFRONT</span>
-          <span>✦ MADE FOR KERALA BOUTIQUES</span>
-          <span>✦ WHATSAPP-FIRST COMMERCE</span>
-          <span>✦ ഒരു ചിത്രം · ഒരു കട</span>
-          <span>✦ ONE PHOTO TO STOREFRONT</span>
-          <span>✦ MADE FOR KERALA BOUTIQUES</span>
+          {[0, 1].map((copy) => (
+            <div className="heritageTickerTrack" key={copy}>
+              {tickerItems.map((item) => <span key={`${copy}-${item}`}>{item}</span>)}
+            </div>
+          ))}
         </div>
         <LenisProvider>{children}</LenisProvider>
       </body>
