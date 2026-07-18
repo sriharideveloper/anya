@@ -1,0 +1,26 @@
+{
+  "name": "anya-ai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@google/generative-ai": "0.24.1",
+    "@studio-freight/lenis": "1.0.42",
+    "@supabase/ssr": "0.12.3",
+    "@supabase/supabase-js": "2.110.7",
+    "framer-motion": "12.42.2",
+    "next": "15.5.20",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "sass": "1.101.0"
+  },
+  "devDependencies": {
+    "eslint": "9.39.2",
+    "eslint-config-next": "15.5.20"
+  }
+}

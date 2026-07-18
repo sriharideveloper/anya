@@ -1,0 +1,63 @@
+:root {
+  --font-body: var(--font-poppins), sans-serif;
+  --font-heading: var(--font-instrument), serif;
+  --bg-primary: #09090b;
+  --bg-secondary: #111114;
+  --bg-card: #17171b;
+  --bg-glass: rgba(23, 23, 27, 0.72);
+  --text-primary: #f7f7f5;
+  --text-secondary: #a4a4ac;
+  --accent-primary: #d6b779;
+  --accent-secondary: #f0dfbd;
+  --accent-rose: #f43f5e;
+  --accent-emerald: #25d366;
+  --border-subtle: rgba(214, 183, 121, 0.18);
+  --shadow-glow: 0 24px 80px rgba(214, 183, 121, 0.12);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 85% 5%, rgba(214, 183, 121, 0.1), transparent 28rem),
+    radial-gradient(circle at 0 75%, rgba(244, 63, 94, 0.055), transparent 30rem),
+    var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+a,
+label {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
