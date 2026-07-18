@@ -24,6 +24,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${poppins.variable} ${instrumentSerif.variable}`}>
       <body>
+        <div className="heritageTicker" aria-hidden="true">
+          <span>✦ ONE PHOTO TO STOREFRONT</span>
+          <span>✦ MADE FOR KERALA BOUTIQUES</span>
+          <span>✦ WHATSAPP-FIRST COMMERCE</span>
+          <span>✦ ഒരു ചിത്രം · ഒരു കട</span>
+          <span>✦ ONE PHOTO TO STOREFRONT</span>
+          <span>✦ MADE FOR KERALA BOUTIQUES</span>
+        </div>
         <LenisProvider>{children}</LenisProvider>
       </body>
     </html>
