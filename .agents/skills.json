@@ -1,0 +1,15 @@
+{
+  "entries": [
+    { "path": "skills/anya-nextjs-scaffold" },
+    { "path": "skills/anya-supabase-setup" },
+    { "path": "skills/anya-gemini-pipeline" },
+    { "path": "skills/anya-whatsapp-engine" },
+    { "path": "skills/anya-ui-design-system" },
+    { "path": "skills/anya-landing-page" },
+    { "path": "skills/anya-code-snippets" },
+    { "path": "skills/anya-codex-prompt" },
+    { "path": "skills/anya-hackathon-checklist" },
+    { "path": "skills/anya-ui-components" },
+    { "path": "skills/anya-demo-data" }
+  ]
+}
