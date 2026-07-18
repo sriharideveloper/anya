@@ -52,6 +52,10 @@ create table if not exists public.bundles (
   constraint bundles_unique_pair unique (product_id, recommended_product_id)
 );
 
+-- Upgrade compatibility for databases initialized with an earlier draft.
+alter table public.stores
+  add column if not exists updated_at timestamptz not null default now();
+
 -- Indexes --------------------------------------------------------------------
 
 create index if not exists idx_stores_owner on public.stores(owner_id);
@@ -81,6 +85,7 @@ create trigger stores_set_updated_at
   for each row execute function public.set_updated_at();
 
 drop trigger if exists products_set_updated_at on public.products;
+drop trigger if exists products_updated_at on public.products;
 create trigger products_set_updated_at
   before update on public.products
   for each row execute function public.set_updated_at();
@@ -102,6 +107,20 @@ where p.is_active = true;
 alter table public.stores enable row level security;
 alter table public.products enable row level security;
 alter table public.bundles enable row level security;
+
+-- Explicit Data API privileges. RLS policies below still decide which rows
+-- each role can access.
+grant select on public.stores, public.products, public.bundles to anon;
+grant select, insert, update, delete on public.stores, public.products, public.bundles to authenticated;
+grant select on public.products_with_badges to anon, authenticated;
+
+-- Remove policy names used by earlier drafts before recreating the final set.
+drop policy if exists "Owners manage their stores" on public.stores;
+drop policy if exists "Store owners manage products" on public.products;
+drop policy if exists "Authenticated users can upload product images" on storage.objects;
+drop policy if exists "Authenticated users can update product images" on storage.objects;
+drop policy if exists "Authenticated users can delete product images" on storage.objects;
+drop policy if exists "Authenticated users can upload" on storage.objects;
 
 drop policy if exists "Owners insert their stores" on public.stores;
 create policy "Owners insert their stores"
@@ -164,6 +183,16 @@ drop policy if exists "Public can view active products" on public.products;
 create policy "Public can view active products"
   on public.products for select to anon, authenticated
   using (is_active = true);
+
+drop policy if exists "Store owners view all products" on public.products;
+create policy "Store owners view all products"
+  on public.products for select to authenticated
+  using (
+    exists (
+      select 1 from public.stores as s
+      where s.id = store_id and s.owner_id = (select auth.uid())
+    )
+  );
 
 drop policy if exists "Store owners manage bundles" on public.bundles;
 create policy "Store owners manage bundles"
@@ -254,6 +283,45 @@ begin
       and tablename = 'products'
   ) then
     alter publication supabase_realtime add table public.products;
+  end if;
+end;
+$$;
+
+-- Transactional verification -------------------------------------------------
+
+do $$
+begin
+  if to_regclass('public.stores') is null
+     or to_regclass('public.products') is null
+     or to_regclass('public.bundles') is null then
+    raise exception 'Anya initialization failed: one or more tables are missing.';
+  end if;
+
+  if exists (
+    select 1
+    from pg_class as c
+    join pg_namespace as n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relname in ('stores', 'products', 'bundles')
+      and not c.relrowsecurity
+  ) then
+    raise exception 'Anya initialization failed: RLS is not enabled on every table.';
+  end if;
+
+  if not exists (
+    select 1 from storage.buckets where id = 'product-images'
+  ) then
+    raise exception 'Anya initialization failed: product-images bucket is missing.';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'products'
+  ) then
+    raise exception 'Anya initialization failed: products Realtime is not enabled.';
   end if;
 end;
 $$;
