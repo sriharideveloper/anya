@@ -19,7 +19,9 @@ export default function ProductCard({ product, phone, index = 0 }) {
     >
       <div className={styles.image}>
         <Image src={product.image_url} alt={product.title} fill sizes="(max-width: 560px) 100vw, (max-width: 980px) 50vw, 33vw" />
-        {new Date(product.created_at) > new Date(Date.now() - 86400000) && <span>Just dropped</span>}
+        {(product.is_trending || product.is_just_dropped || new Date(product.created_at) > new Date(Date.now() - 86400000)) && (
+          <span>{product.is_trending ? 'Trending now' : 'Just dropped'}</span>
+        )}
       </div>
       <div className={styles.content}>
         <small>{product.category || 'Boutique edit'}</small>

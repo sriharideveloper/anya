@@ -2,11 +2,11 @@
   --font-body: var(--font-poppins), sans-serif;
   --font-heading: var(--font-instrument), serif;
   --font-malayalam: 'Nirmala UI', 'Kartika', serif;
-  --bg-primary: #f7f2ea;
-  --bg-secondary: #eee5d9;
-  --bg-card: #fffaf3;
-  --bg-glass: rgba(255, 250, 243, 0.88);
-  --text-primary: #2b1d19;
+  --bg-primary: #faf7f2;
+  --bg-secondary: #f0e7dc;
+  --bg-card: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.9);
+  --text-primary: #201714;
   --text-secondary: #705e55;
   --accent-primary: #96362e;
   --accent-secondary: #ad4035;
@@ -14,7 +14,7 @@
   --accent-emerald: #245f45;
   --border-subtle: rgba(67, 42, 32, 0.18);
   --shadow-glow: 0 28px 80px rgba(83, 49, 35, 0.12);
-  --shadow-card: 10px 12px 0 #2b1d19;
+  --shadow-card: 10px 12px 0 #201714;
   --radius-sm: 8px;
   --radius-md: 13px;
   --radius-lg: 18px;
@@ -35,18 +35,19 @@ body {
   position: relative;
   min-height: 100vh;
   margin: 0;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at 85% 5%, rgba(150, 54, 46, 0.065), transparent 28rem),
     radial-gradient(circle at 0 75%, rgba(102, 69, 49, 0.05), transparent 30rem),
     repeating-linear-gradient(90deg, transparent 0 79px, rgba(72, 44, 32, 0.022) 80px),
-    var(--bg-primary);
+    #faf7f2;
   color: var(--text-primary);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
 
 body::before {
-  position: fixed;
+  position: absolute;
   z-index: 0;
   right: -0.04em;
   bottom: -0.22em;
@@ -115,5 +116,15 @@ label {
 
   .heritageTicker span:nth-child(n + 4) {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

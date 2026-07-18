@@ -3,7 +3,8 @@
 .page nav { display: flex; padding: 1.2rem 0; border-bottom: 1px solid var(--border-subtle); align-items: center; justify-content: space-between; }
 .page nav > div { display: flex; align-items: center; gap: 0.8rem; }
 .page nav button { border: 0; background: transparent; color: var(--text-secondary); font-size: 0.7rem; cursor: pointer; }
-.brand { font-family: var(--font-heading); font-size: 1.8rem; }
+.brand { display: inline-flex; font-family: var(--font-heading); font-size: 1.8rem; align-items: center; gap: .65rem; }
+.brand::before { width: 2rem; height: 2rem; background: url('/anya-mark.svg') center / contain no-repeat; content: ''; flex: 0 0 auto; }
 .brand span { color: var(--accent-primary); }
 .storeLink { color: var(--text-secondary); font-size: 0.72rem; transition: color 0.2s ease; }
 .storeLink:hover, .page nav button:hover { color: var(--text-primary); }

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Anya AI monogram</title>
+  <circle cx="32" cy="32" r="31" fill="#96362e"/>
+  <circle cx="32" cy="32" r="24.5" fill="none" stroke="#fffdf9" stroke-opacity=".52"/>
+  <path d="M18.5 45.5 29.2 18c.6-1.6 1.6-2.5 2.9-2.5 1.4 0 2.4.9 3 2.5l10.4 27.5h-6.7l-2.4-7H26.9l-2.3 7h-6.1Zm10.4-12.8h5.6l-2.8-8.5-2.8 8.5Z" fill="#fffdf9"/>
+  <path d="M15 49h34" stroke="#fffdf9" stroke-width="1.5" stroke-linecap="round" opacity=".78"/>
+</svg>

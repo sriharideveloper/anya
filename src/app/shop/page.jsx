@@ -32,7 +32,7 @@ export default function Shop() {
       }
 
       const { data: productData, error: productError } = await supabase
-        .from('products')
+        .from('products_with_badges')
         .select('*')
         .eq('store_id', storeData.id)
         .eq('is_active', true)

@@ -1,6 +1,7 @@
 .page { position: relative; width: min(1240px, calc(100% - 2rem)); margin: 0 auto; }
 .page nav { display: flex; padding: 1.2rem 0; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); align-items: center; justify-content: space-between; font-size: .62rem; }
-.brand { color: var(--text-primary); font-family: var(--font-heading); font-size: 1.8rem; }
+.brand { display: inline-flex; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.8rem; align-items: center; gap: .65rem; }
+.brand::before { width: 2rem; height: 2rem; background: url('/anya-mark.svg') center / contain no-repeat; content: ''; flex: 0 0 auto; }
 .brand span { color: var(--accent-primary); }
 .page header { display: grid; position: relative; min-height: 48vh; padding: 4rem 0 3rem; overflow: hidden; align-items: flex-end; gap: 2rem; }
 .page header::after { position: absolute; z-index: -1; right: 0; bottom: -0.12em; color: rgba(150,54,46,.05); content: 'കേരളം'; font-family: var(--font-malayalam); font-size: clamp(7rem, 18vw, 15rem); font-weight: 700; line-height: 1; white-space: nowrap; }

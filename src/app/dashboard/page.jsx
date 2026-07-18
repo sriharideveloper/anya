@@ -38,13 +38,6 @@ function compressImage(file) {
   });
 }
 
-function dataUrlToBlob(dataUrl) {
-  const [header, data] = dataUrl.split(',');
-  const mime = header.match(/data:(.*);base64/)?.[1] || 'image/jpeg';
-  const bytes = Uint8Array.from(atob(data), (character) => character.charCodeAt(0));
-  return new Blob([bytes], { type: mime });
-}
-
 function slugify(value) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
@@ -201,39 +194,28 @@ export default function Dashboard() {
     setVisualStatus('idle');
     setStatus('publishing');
     setMessage('Publishing to your storefront…');
-    const supabase = createClient();
-    const file = dataUrlToBlob(selectedVisual);
-    const extension = file.type === 'image/png' ? 'png' : 'jpg';
-    const path = `${session.user.id}/${crypto.randomUUID()}.${extension}`;
-    const { error: uploadError } = await supabase.storage.from('product-images').upload(path, file, { contentType: file.type });
-    if (uploadError) {
-      setMessage(uploadError.message);
-      setStatus('idle');
-      return;
-    }
+    try {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        body: JSON.stringify({ accessToken: session.access_token, storeId: store.id, image: selectedVisual, product }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Product publishing failed.');
 
-    const { data: publicData } = supabase.storage.from('product-images').getPublicUrl(path);
-    const { error } = await supabase.from('products').insert({
-      store_id: store.id,
-      image_url: publicData.publicUrl,
-      title: product.title.trim(),
-      description: product.description.trim(),
-      price: Number(product.price),
-      category: product.category,
-      vibe_tags: product.vibeTags,
-      ai_generated: true,
-    });
-
-    if (error) setMessage(error.message);
-    else {
+      setProducts((current) => [data.product, ...current.filter((item) => item.id !== data.product.id)]);
       await loadProducts(store.id);
       setImage('');
       setSelectedVisual('');
       setVisuals([]);
       setProduct(null);
-      setMessage('Published. Your storefront is live.');
+      setMessage(data.bundle ? 'Published with a complementary bundle. Your storefront is live.' : 'Published. Add one more product to create an automatic bundle.');
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setStatus('idle');
     }
-    setStatus('idle');
   };
 
   const logout = async () => {

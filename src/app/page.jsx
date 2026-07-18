@@ -1,7 +1,4 @@
-'use client';
-
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import styles from './page.module.scss';
 
 const flow = [
@@ -25,12 +22,7 @@ export default function Home() {
         <Link href="/dashboard" className={styles.navCta}>Open studio</Link>
       </nav>
 
-      <motion.section
-        className={styles.hero}
-        initial={{ opacity: 0, y: 36 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      >
+      <section className={styles.hero}>
         <span className={styles.kicker}><i /> Your storefront is one photo away</span>
         <h1>From camera roll<br />to <em>sold.</em></h1>
         <p>
@@ -41,15 +33,9 @@ export default function Home() {
           <Link href="/dashboard" className={styles.primary}>Build my storefront <span>↗</span></Link>
           <a href="#how-it-works" className={styles.secondary}>See how it works</a>
         </div>
-      </motion.section>
+      </section>
 
-      <motion.section
-        className={styles.showcase}
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-80px' }}
-        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-      >
+      <section className={styles.showcase}>
         <div className={styles.visualStage}>
           <span className={styles.aiBadge}>✦ Nano Banana visual</span>
           <div className={styles.silhouette}><i /><b /></div>
@@ -63,7 +49,7 @@ export default function Home() {
           <strong>₹4,899</strong>
           <Link href="/dashboard">Build this storefront <span>↗</span></Link>
         </div>
-      </motion.section>
+      </section>
 
       <section className={styles.flow} id="how-it-works">
         <div className={styles.flowHeading}>
@@ -71,18 +57,12 @@ export default function Home() {
           <h2>Less setup.<br />More selling.</h2>
         </div>
         <div className={styles.steps}>
-          {flow.map(([number, title, copy], index) => (
-            <motion.article
-              key={number}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-80px' }}
-              transition={{ delay: index * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            >
+          {flow.map(([number, title, copy]) => (
+            <article key={number}>
               <span>{number}</span>
               <h3>{title}</h3>
               <p>{copy}</p>
-            </motion.article>
+            </article>
           ))}
         </div>
       </section>
@@ -94,15 +74,9 @@ export default function Home() {
         </div>
         <div className={styles.featureGrid}>
           {features.map(([title, copy], index) => (
-            <motion.article
-              key={title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.06, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            >
+            <article key={title}>
               <span>0{index + 1}</span><h3>{title}</h3><p>{copy}</p>
-            </motion.article>
+            </article>
           ))}
         </div>
       </section>

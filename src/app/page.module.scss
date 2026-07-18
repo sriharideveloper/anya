@@ -15,8 +15,19 @@
 }
 
 .brand {
+  display: inline-flex;
   font-family: var(--font-heading);
   font-size: 1.8rem;
+  align-items: center;
+  gap: .65rem;
+
+  &::before {
+    width: 2rem;
+    height: 2rem;
+    background: url('/anya-mark.svg') center / contain no-repeat;
+    content: '';
+    flex: 0 0 auto;
+  }
 
   span { color: var(--accent-primary); }
 }
@@ -50,6 +61,7 @@
   padding: 5rem 0;
   flex-direction: column;
   justify-content: center;
+  animation: heroEnter .65s cubic-bezier(.22,1,.36,1) both;
 
   &::after {
     position: absolute;
@@ -157,7 +169,6 @@
   border-radius: var(--radius-xl);
   background: var(--bg-card);
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(20px);
 }
 
 .visualStage {
@@ -180,7 +191,6 @@
   background: rgba(134,42,37,.88);
   color: #fffaf3;
   font-size: .6rem;
-  backdrop-filter: blur(14px);
 }
 
 .silhouette {
@@ -240,7 +250,6 @@
   border-radius: var(--radius-full);
   background: rgba(43,29,25,.72);
   gap: .35rem;
-  backdrop-filter: blur(10px);
 
   i { width: .85rem; height: .85rem; border-radius: 50%; background: #ead6a6; }
   i:nth-child(2) { background: #c59b49; }
@@ -301,7 +310,6 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   background: rgba(255, 250, 243, 0.82);
-  backdrop-filter: blur(20px);
   transition: transform .3s ease, border-color .3s ease;
 
   &:hover { border-color: var(--accent-primary); transform: translateY(-6px); }
@@ -373,7 +381,6 @@
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
     background: rgba(255, 250, 243, 0.82);
-    backdrop-filter: blur(20px);
     transition: transform 0.3s ease, border-color 0.3s ease;
 
     &:hover {
@@ -420,4 +427,9 @@
   .featureGrid { grid-template-columns: repeat(2, 1fr); }
   .featureGrid article:nth-child(1),
   .featureGrid article:nth-child(4) { min-height: 300px; }
+}
+
+@keyframes heroEnter {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
 }
