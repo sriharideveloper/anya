@@ -1,220 +1,265 @@
-# Anya AI — Supabase SQL Setup Script
+-- Anya AI - complete Supabase initialization
+-- Paste this entire file into the Supabase SQL Editor and select Run.
+-- Safe to rerun: tables, indexes, policies, triggers, bucket, and Realtime
+-- configuration are created or refreshed without deleting application data.
 
-> Run this ENTIRE script in the Supabase SQL Editor in one go.
-> It creates everything: tables, indexes, views, RLS, storage bucket.
+begin;
 
----
+create extension if not exists pgcrypto;
 
-```sql
--- ============================================================
--- ANYA AI — COMPLETE DATABASE SETUP
--- Run this in Supabase SQL Editor (one shot)
--- ============================================================
+-- Tables ---------------------------------------------------------------------
 
--- 1. TABLES
--- ============================================================
-
--- Stores table
-CREATE TABLE IF NOT EXISTS stores (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  store_name TEXT NOT NULL,
-  whatsapp_number TEXT NOT NULL,
-  store_slug TEXT UNIQUE NOT NULL,
-  logo_url TEXT,
-  tagline TEXT DEFAULT 'Powered by Anya AI',
-  theme JSONB DEFAULT '{"accent": "#c9a96e", "mode": "dark"}'::jsonb,
-  haggle_mode BOOLEAN DEFAULT false,
-  malayalam_mode BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now()
+create table if not exists public.stores (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  store_name text not null check (char_length(trim(store_name)) between 1 and 100),
+  whatsapp_number text not null check (whatsapp_number ~ '^[0-9]{10,15}$'),
+  store_slug text not null unique check (store_slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
+  logo_url text,
+  tagline text not null default 'Powered by Anya AI',
+  theme jsonb not null default '{"accent":"#c9a96e","mode":"dark"}'::jsonb,
+  haggle_mode boolean not null default false,
+  malayalam_mode boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- Products table
-CREATE TABLE IF NOT EXISTS products (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  store_id UUID REFERENCES stores(id) ON DELETE CASCADE NOT NULL,
-  image_url TEXT NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  price NUMERIC(10,2),
-  category TEXT,
-  vibe_tags TEXT[] DEFAULT '{}',
-  occasion TEXT,
-  color_palette JSONB,
-  ai_generated BOOLEAN DEFAULT true,
-  is_active BOOLEAN DEFAULT true,
-  view_count INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+create table if not exists public.products (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references public.stores(id) on delete cascade,
+  image_url text not null,
+  title text not null check (char_length(trim(title)) between 1 and 160),
+  description text,
+  price numeric(10,2) check (price is null or price >= 0),
+  category text,
+  vibe_tags text[] not null default '{}',
+  occasion text,
+  color_palette jsonb,
+  ai_generated boolean not null default true,
+  is_active boolean not null default true,
+  view_count integer not null default 0 check (view_count >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- Bundles / Recommendations table
-CREATE TABLE IF NOT EXISTS bundles (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-  recommended_product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-  recommendation_reason TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
+create table if not exists public.bundles (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null references public.products(id) on delete cascade,
+  recommended_product_id uuid not null references public.products(id) on delete cascade,
+  recommendation_reason text,
+  created_at timestamptz not null default now(),
+  constraint bundle_products_must_differ check (product_id <> recommended_product_id),
+  constraint bundles_unique_pair unique (product_id, recommended_product_id)
 );
 
--- 2. INDEXES
--- ============================================================
+-- Indexes --------------------------------------------------------------------
 
-CREATE INDEX IF NOT EXISTS idx_products_store_id ON products(store_id);
-CREATE INDEX IF NOT EXISTS idx_products_vibe_tags ON products USING GIN(vibe_tags);
-CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
-CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_products_occasion ON products(occasion);
-CREATE INDEX IF NOT EXISTS idx_stores_slug ON stores(store_slug);
-CREATE INDEX IF NOT EXISTS idx_stores_owner ON stores(owner_id);
+create index if not exists idx_stores_owner on public.stores(owner_id);
+create index if not exists idx_products_store_id on public.products(store_id);
+create index if not exists idx_products_vibe_tags on public.products using gin(vibe_tags);
+create index if not exists idx_products_category on public.products(category);
+create index if not exists idx_products_occasion on public.products(occasion);
+create index if not exists idx_products_created_at on public.products(created_at desc);
+create index if not exists idx_bundles_product on public.bundles(product_id);
 
--- 3. VIEWS
--- ============================================================
+-- Shared timestamp trigger ----------------------------------------------------
 
-CREATE OR REPLACE VIEW products_with_badges AS
-SELECT
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists stores_set_updated_at on public.stores;
+create trigger stores_set_updated_at
+  before update on public.stores
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists products_set_updated_at on public.products;
+create trigger products_set_updated_at
+  before update on public.products
+  for each row execute function public.set_updated_at();
+
+-- Public storefront view. security_invoker keeps table RLS in force. ----------
+
+create or replace view public.products_with_badges
+with (security_invoker = true)
+as
+select
   p.*,
-  CASE
-    WHEN p.created_at > now() - INTERVAL '24 hours' THEN true
-    ELSE false
-  END AS is_just_dropped,
-  CASE
-    WHEN p.view_count > 50 THEN true
-    ELSE false
-  END AS is_trending
-FROM products p
-WHERE p.is_active = true;
+  p.created_at > now() - interval '24 hours' as is_just_dropped,
+  p.view_count > 50 as is_trending
+from public.products as p
+where p.is_active = true;
 
--- 4. ROW LEVEL SECURITY
--- ============================================================
+-- Row Level Security ----------------------------------------------------------
 
--- Enable RLS on all tables
-ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bundles ENABLE ROW LEVEL SECURITY;
+alter table public.stores enable row level security;
+alter table public.products enable row level security;
+alter table public.bundles enable row level security;
 
--- STORES POLICIES
+drop policy if exists "Owners insert their stores" on public.stores;
+create policy "Owners insert their stores"
+  on public.stores for insert to authenticated
+  with check ((select auth.uid()) = owner_id);
 
--- Owners can manage their own stores
-CREATE POLICY "Owners manage their stores"
-  ON stores FOR ALL
-  USING (auth.uid() = owner_id)
-  WITH CHECK (auth.uid() = owner_id);
+drop policy if exists "Owners update their stores" on public.stores;
+create policy "Owners update their stores"
+  on public.stores for update to authenticated
+  using ((select auth.uid()) = owner_id)
+  with check ((select auth.uid()) = owner_id);
 
--- Anyone can view stores (public storefront)
-CREATE POLICY "Public can view stores"
-  ON stores FOR SELECT
-  USING (true);
+drop policy if exists "Owners delete their stores" on public.stores;
+create policy "Owners delete their stores"
+  on public.stores for delete to authenticated
+  using ((select auth.uid()) = owner_id);
 
--- PRODUCTS POLICIES
+drop policy if exists "Public can view stores" on public.stores;
+create policy "Public can view stores"
+  on public.stores for select to anon, authenticated
+  using (true);
 
--- Store owners can manage their products
-CREATE POLICY "Store owners manage products"
-  ON products FOR ALL
-  USING (
-    store_id IN (
-      SELECT id FROM stores WHERE owner_id = auth.uid()
+drop policy if exists "Store owners insert products" on public.products;
+create policy "Store owners insert products"
+  on public.products for insert to authenticated
+  with check (
+    exists (
+      select 1 from public.stores as s
+      where s.id = store_id and s.owner_id = (select auth.uid())
+    )
+  );
+
+drop policy if exists "Store owners update products" on public.products;
+create policy "Store owners update products"
+  on public.products for update to authenticated
+  using (
+    exists (
+      select 1 from public.stores as s
+      where s.id = store_id and s.owner_id = (select auth.uid())
     )
   )
-  WITH CHECK (
-    store_id IN (
-      SELECT id FROM stores WHERE owner_id = auth.uid()
+  with check (
+    exists (
+      select 1 from public.stores as s
+      where s.id = store_id and s.owner_id = (select auth.uid())
     )
   );
 
--- Anyone can view active products (public storefront)
-CREATE POLICY "Public can view active products"
-  ON products FOR SELECT
-  USING (is_active = true);
-
--- BUNDLES POLICIES
-
--- Store owners can manage bundles for their products
-CREATE POLICY "Store owners manage bundles"
-  ON bundles FOR ALL
-  USING (
-    product_id IN (
-      SELECT p.id FROM products p
-      JOIN stores s ON p.store_id = s.id
-      WHERE s.owner_id = auth.uid()
+drop policy if exists "Store owners delete products" on public.products;
+create policy "Store owners delete products"
+  on public.products for delete to authenticated
+  using (
+    exists (
+      select 1 from public.stores as s
+      where s.id = store_id and s.owner_id = (select auth.uid())
     )
   );
 
--- Anyone can view bundles
-CREATE POLICY "Public can view bundles"
-  ON bundles FOR SELECT
-  USING (true);
+drop policy if exists "Public can view active products" on public.products;
+create policy "Public can view active products"
+  on public.products for select to anon, authenticated
+  using (is_active = true);
 
--- 5. STORAGE BUCKET
--- ============================================================
-
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('product-images', 'product-images', true)
-ON CONFLICT (id) DO NOTHING;
-
--- Allow authenticated users to upload images
-CREATE POLICY "Authenticated users can upload product images"
-  ON storage.objects FOR INSERT
-  WITH CHECK (
-    bucket_id = 'product-images'
-    AND auth.role() = 'authenticated'
+drop policy if exists "Store owners manage bundles" on public.bundles;
+create policy "Store owners manage bundles"
+  on public.bundles for all to authenticated
+  using (
+    exists (
+      select 1
+      from public.products as p
+      join public.stores as s on s.id = p.store_id
+      where p.id = product_id and s.owner_id = (select auth.uid())
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.products as p
+      join public.stores as s on s.id = p.store_id
+      where p.id = product_id and s.owner_id = (select auth.uid())
+    )
   );
 
--- Allow authenticated users to update their uploads
-CREATE POLICY "Authenticated users can update product images"
-  ON storage.objects FOR UPDATE
-  USING (
-    bucket_id = 'product-images'
-    AND auth.role() = 'authenticated'
-  );
+drop policy if exists "Public can view bundles" on public.bundles;
+create policy "Public can view bundles"
+  on public.bundles for select to anon, authenticated
+  using (true);
 
--- Allow authenticated users to delete their uploads
-CREATE POLICY "Authenticated users can delete product images"
-  ON storage.objects FOR DELETE
-  USING (
-    bucket_id = 'product-images'
-    AND auth.role() = 'authenticated'
-  );
+-- Product image storage -------------------------------------------------------
 
--- Anyone can view product images (public)
-CREATE POLICY "Public can view product images"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'product-images');
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'product-images',
+  'product-images',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
 
--- 6. FUNCTIONS
--- ============================================================
+drop policy if exists "Authenticated users upload product images" on storage.objects;
+create policy "Authenticated users upload product images"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'product-images');
 
--- Auto-update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+drop policy if exists "Owners update product images" on storage.objects;
+create policy "Owners update product images"
+  on storage.objects for update to authenticated
+  using (bucket_id = 'product-images' and owner_id = (select auth.uid()::text))
+  with check (bucket_id = 'product-images' and owner_id = (select auth.uid()::text));
 
-CREATE TRIGGER products_updated_at
-  BEFORE UPDATE ON products
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at();
+drop policy if exists "Owners delete product images" on storage.objects;
+create policy "Owners delete product images"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'product-images' and owner_id = (select auth.uid()::text));
 
--- Increment view count function
-CREATE OR REPLACE FUNCTION increment_view_count(product_id UUID)
-RETURNS void AS $$
-BEGIN
-  UPDATE products
-  SET view_count = view_count + 1
-  WHERE id = product_id;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+drop policy if exists "Public can view product images" on storage.objects;
+create policy "Public can view product images"
+  on storage.objects for select to anon, authenticated
+  using (bucket_id = 'product-images');
 
--- 7. REALTIME
--- ============================================================
+-- Safe view counter -----------------------------------------------------------
 
--- Enable realtime for products (live updates on storefront)
-ALTER PUBLICATION supabase_realtime ADD TABLE products;
+create or replace function public.increment_product_view(target_product_id uuid)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  update public.products
+  set view_count = view_count + 1
+  where id = target_product_id and is_active = true;
+$$;
 
--- ============================================================
--- DONE! Your Anya AI database is ready. 🎉
--- ============================================================
-```
+revoke all on function public.increment_product_view(uuid) from public;
+grant execute on function public.increment_product_view(uuid) to anon, authenticated;
+
+-- Realtime -------------------------------------------------------------------
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'products'
+  ) then
+    alter publication supabase_realtime add table public.products;
+  end if;
+end;
+$$;
+
+commit;
+
+-- Optional smoke test after completion:
+-- select table_name from information_schema.tables where table_schema = 'public';
+-- select * from storage.buckets where id = 'product-images';
