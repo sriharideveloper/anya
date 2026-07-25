@@ -23,6 +23,17 @@ function normalizeVibeTags(vibeTags) {
   return tags.filter(Boolean).join(' • ') || DEFAULT_VIBE;
 }
 
+function normalizeOptions(selectedOptions) {
+  if (!selectedOptions || typeof selectedOptions !== 'object' || Array.isArray(selectedOptions)) return '';
+
+  const lines = Object.entries(selectedOptions)
+    .map(([name, value]) => [String(name).trim(), String(value).trim()])
+    .filter(([name, value]) => name && value)
+    .map(([name, value]) => `• ${name}: *${value}*`);
+
+  return lines.length ? `\n\n📐 Selected options:\n${lines.join('\n')}` : '';
+}
+
 export function createWhatsAppUrl({
   phone,
   title,
@@ -32,6 +43,8 @@ export function createWhatsAppUrl({
   occasion,
   vibeTags,
   vibe_tags: legacyVibeTags,
+  selectedOptions,
+  productUrl,
   mode = 'buy',
 }) {
   const cleanPhone = normalizePhone(phone);
@@ -41,14 +54,16 @@ export function createWhatsAppUrl({
   if (!cleanTitle || !Number.isFinite(cleanPrice)) throw new Error('Invalid product details.');
 
   const formattedPrice = formatPrice(cleanPrice);
-  const message = mode === 'haggle'
+  const optionLine = normalizeOptions(selectedOptions);
+  const linkLine = productUrl ? `\n\n🔗 ${String(productUrl).trim()}` : '';
+  const message = mode === 'bargain'
     ? `🤝 *Hi!*
 
 I absolutely loved your
 
 ✨ *${cleanTitle}*
 
-Priced at *₹${formattedPrice}*.
+Priced at *₹${formattedPrice}*.${optionLine}${linkLine}
 
 I was wondering if there's any festive offer or best price available 😊
 
@@ -66,7 +81,7 @@ Looking forward to hearing from you!`
 🌸 Occasion: ${String(occasion || DEFAULT_OCCASION).trim()}
 
 🎨 Vibe:
-${normalizeVibeTags(vibeTags ?? legacyVibeTags)}
+${normalizeVibeTags(vibeTags ?? legacyVibeTags)}${optionLine}${linkLine}
 
 ━━━━━━━━━━━━━━
 
@@ -127,6 +142,16 @@ export function createStoreWhatsAppUrl({ phone, storeName, malayalam = false }) 
   const message = malayalam
     ? `നമസ്കാരം ${cleanStoreName}! നിങ്ങളുടെ Anya AI ശോപ്പ് കണ്ടു. ശേഖരത്തെക്കുറിച്ച് ഒരു ചോദ്യം ഉണ്ട്.`
     : `Hi ${cleanStoreName}! I found your Anya AI storefront and have a question about the collection.`;
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+
+export function createStoreUpdatesWhatsAppUrl({ phone, storeName, malayalam = false }) {
+  const cleanPhone = normalizePhone(phone);
+  const cleanStoreName = String(storeName || 'your boutique').trim();
+  const message = malayalam
+    ? `നമസ്കാരം ${cleanStoreName}! നിങ്ങളുടെ പുതിയ കളക്ഷനുകളും സ്റ്റോക്ക് അപ്ഡേറ്റുകളും WhatsApp-ൽ അറിയാൻ ആഗ്രഹിക്കുന്നു.`
+    : `Hi ${cleanStoreName}! I’d love to get new arrivals and restock updates from your storefront on WhatsApp.`;
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }

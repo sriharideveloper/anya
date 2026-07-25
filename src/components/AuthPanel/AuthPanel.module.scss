@@ -31,6 +31,13 @@
   p { max-width: 520px; margin: 0; color: var(--text-secondary); line-height: 1.7; }
 }
 
+.buyerNote {
+  margin-top: 1rem !important;
+  padding-left: .8rem;
+  border-left: 2px solid var(--accent-primary);
+  font-size: .72rem;
+}
+
 .shell form {
   display: grid;
   padding: 1.2rem;

@@ -36,7 +36,7 @@ function parseSettings(body) {
     return { error: 'Add a WhatsApp number with its country code.' };
   }
 
-  if (typeof body.haggleMode !== 'boolean' || typeof body.malayalamMode !== 'boolean') {
+  if (typeof body.bargainMode !== 'boolean' || typeof body.malayalamMode !== 'boolean') {
     return { error: 'Store modes must be turned on or off.' };
   }
 
@@ -45,7 +45,7 @@ function parseSettings(body) {
       store_name: storeName,
       tagline,
       whatsapp_number: whatsapp,
-      haggle_mode: body.haggleMode,
+      bargain_mode: body.bargainMode,
       malayalam_mode: body.malayalamMode,
     },
   };

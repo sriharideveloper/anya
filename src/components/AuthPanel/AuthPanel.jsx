@@ -40,18 +40,19 @@ export default function AuthPanel() {
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className={styles.intro}>
-        <span>Seller access</span>
+        <span>Seller sign in</span>
         <h1>Build a store<br />people remember.</h1>
         <p>Sign in to create your storefront, generate product visuals and publish your collection.</p>
+        <p className={styles.buyerNote}>Shopping? No account needed. Open a boutique link and order directly on WhatsApp.</p>
       </div>
       <form onSubmit={submit}>
         <div className={styles.switcher}>
-          <button type="button" className={mode === 'signin' ? styles.active : ''} onClick={() => setMode('signin')}>Sign in</button>
+          <button type="button" className={mode === 'signin' ? styles.active : ''} onClick={() => setMode('signin')}>Seller sign in</button>
           <button type="button" className={mode === 'signup' ? styles.active : ''} onClick={() => setMode('signup')}>Create account</button>
         </div>
         <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" /></label>
         <label>Password<input type="password" minLength="6" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} /></label>
-        <button className={styles.submit} disabled={busy}>{busy ? 'Opening studio…' : mode === 'signin' ? 'Open my studio' : 'Create my account'}</button>
+        <button className={styles.submit} disabled={busy}>{busy ? 'Opening studio…' : mode === 'signin' ? 'Open Seller Studio' : 'Create seller account'}</button>
         {message && <p className={styles.message}>{message}</p>}
       </form>
     </motion.section>

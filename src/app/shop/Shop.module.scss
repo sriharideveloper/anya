@@ -273,6 +273,31 @@
   color: var(--shop-brown);
 }
 
+.catalogControls {
+  display: grid;
+  margin: .8rem .1rem 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .5rem;
+
+  label { display: grid; min-width: 0; gap: .28rem; }
+  label > span { color: var(--text-secondary); font-size: .49rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; }
+  select {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.6rem;
+    padding: .55rem 1.7rem .55rem .65rem;
+    border: 1px solid rgba(67, 42, 32, .16);
+    border-radius: 3px;
+    outline: 0;
+    background: rgba(255, 255, 255, .7);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: .58rem;
+    text-overflow: ellipsis;
+  }
+  select:focus-visible { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(150, 54, 46, .1); }
+}
+
 .bundleSection {
   margin: 3.5rem 0 1.4rem;
   padding: 2.4rem 0;
@@ -561,6 +586,25 @@
 .floatingContact:hover { background: #174a35; box-shadow: 0 17px 42px rgba(25, 77, 54, 0.38); transform: translateY(-3px); }
 .floatingContact:active { transform: translateY(0) scale(0.98); }
 
+.updatesContact {
+  position: fixed;
+  z-index: 29;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 3.5rem);
+  max-width: calc(100vw - 2rem);
+  padding: .58rem .82rem;
+  border: 1px solid rgba(67, 42, 32, .18);
+  border-radius: var(--radius-full);
+  background: rgba(255, 250, 243, .96);
+  box-shadow: 0 10px 28px rgba(78, 46, 33, .12);
+  color: var(--shop-brown);
+  font-size: .56rem;
+  font-weight: 650;
+  transition: transform .22s ease, background .22s ease, color .22s ease;
+}
+
+.updatesContact:hover { background: var(--shop-ink); color: var(--shop-paper); transform: translateY(-2px); }
+
 .state {
   display: grid;
   min-height: calc(100vh - 2.5rem);
@@ -615,6 +659,8 @@
 .malayalam .bundleContent,
 .malayalam .empty,
 .malayalam footer,
+.malayalam .catalogControls,
+.malayalam .updatesContact,
 .malayalam .floatingContact {
   font-family: var(--font-malayalam), var(--font-body);
 }
@@ -650,6 +696,8 @@
 
 @media (max-width: 559px) {
   .suggestions > div { padding-right: 0.1rem; }
+  .catalogControls { grid-template-columns: 1fr 1fr; }
+  .catalogControls label:last-child { grid-column: 1 / -1; }
   .page footer { align-items: flex-start; flex-direction: column; }
 }
 
@@ -660,6 +708,7 @@
   .toolbar label > span:first-child { padding-right: 0.4rem; padding-left: 0.3rem; }
   .floatingContact span { display: none; }
   .floatingContact { padding: 0.72rem; }
+  .updatesContact { bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 3.6rem); }
 }
 
 @media (hover: none) {
@@ -676,5 +725,6 @@
   .bundleNames a,
   .bundleContent button,
   .bundleContent button span,
+  .updatesContact,
   .floatingContact { transition-duration: 0.01ms; }
 }

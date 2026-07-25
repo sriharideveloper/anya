@@ -5,10 +5,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import ProductCard from '@/components/ProductCard/ProductCard';
-import { createBundleWhatsAppUrl, createStoreWhatsAppUrl } from '@/lib/whatsapp';
+import { createBundleWhatsAppUrl, createStoreUpdatesWhatsAppUrl, createStoreWhatsAppUrl } from '@/lib/whatsapp';
 import { createClient } from '@/lib/supabase/client';
 import styles from './Shop.module.scss';
 
+const LEGACY_PUBLIC_PRODUCT_FIELDS = 'id,store_id,image_url,title,description,price,compare_at_price,stock_quantity,category,vibe_tags,occasion,color_palette,ai_generated,is_active,view_count,created_at,updated_at';
 const PRICE_VALUE = '(?:₹\\s*|rs\\.?\\s*|inr\\s*)?\\d[\\d,]*(?:\\.\\d+)?\\s*k?';
 const STOP_WORDS = new Set([
   'a', 'about', 'above', 'an', 'and', 'around', 'at', 'below', 'between', 'budget',
@@ -86,7 +87,14 @@ const COPY = {
     clearSearch: 'Clear search',
     footer: 'Powered by Anya AI · Orders open in WhatsApp',
     contact: 'Chat with the store',
+    updates: 'Get new arrivals',
     productsLabel: 'Boutique collection',
+    allCategories: 'All categories',
+    allAvailability: 'All availability',
+    availableOnly: 'In stock only',
+    newest: 'Newest first',
+    priceLow: 'Price: low to high',
+    priceHigh: 'Price: high to low',
     suggestions: [
       { label: 'Blue saree · under ₹3,000', query: 'blue saree under 3000' },
       { label: 'Onam edit · under ₹5,000', query: 'Onam under 5000' },
@@ -118,7 +126,14 @@ const COPY = {
     clearSearch: 'തിരയൽ മായ്ക്കൂ',
     footer: 'Anya AI നൽകുന്നു · WhatsApp-ൽ ഓർഡർ ചെയ്യൂ',
     contact: 'കടയുമായി സംസാരിക്കൂ',
+    updates: 'പുതിയവ അറിയൂ',
     productsLabel: 'ബുട്ടീക്ക് ശേഖരം',
+    allCategories: 'എല്ലാ വിഭാഗങ്ങളും',
+    allAvailability: 'എല്ലാ ലഭ്യതയും',
+    availableOnly: 'സ്റ്റോക്കിലുള്ളവ മാത്രം',
+    newest: 'പുതിയത് ആദ്യം',
+    priceLow: 'വില: കുറഞ്ഞത് ആദ്യം',
+    priceHigh: 'വില: കൂടിയത് ആദ്യം',
     termLabels: {
       beige: 'ബീഷ്', black: 'കറുപ്പ്', blue: 'നീല', brown: 'ബ്രൗൺ', everyday: 'ദൈനംദിനം',
       festive: 'ഉത്സവം', gold: 'സ്വർണ്ണം', green: 'പച്ച', grey: 'ചാരനിറം', jewellery: 'ആഭരണം',
@@ -236,6 +251,9 @@ function productSearchWords(product) {
     product.category,
     product.occasion,
     ...(product.vibe_tags || []),
+    ...(product.category_path || []),
+    ...(product.audience_tags || []),
+    JSON.stringify(product.attributes || {}),
     JSON.stringify(product.color_palette || {}),
     ...paletteColorWords(product.color_palette),
   ].filter(Boolean).join(' '));
@@ -291,6 +309,9 @@ export default function Shop() {
   const [bundleRows, setBundleRows] = useState([]);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [category, setCategory] = useState('');
+  const [availability, setAvailability] = useState('all');
+  const [sort, setSort] = useState('newest');
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
 
@@ -299,6 +320,12 @@ export default function Shop() {
 
     const load = async () => {
       const slug = new URLSearchParams(window.location.search).get('store');
+      const initialParams = new URLSearchParams(window.location.search);
+      setQuery(initialParams.get('q') || '');
+      setDebouncedQuery(initialParams.get('q') || '');
+      setCategory(initialParams.get('category') || '');
+      setAvailability(initialParams.get('availability') === 'in-stock' ? 'in-stock' : 'all');
+      setSort(['newest', 'price-low', 'price-high'].includes(initialParams.get('sort')) ? initialParams.get('sort') : 'newest');
       if (!slug) {
         if (!cancelled) {
           setError('This storefront link is missing its store name.');
@@ -308,13 +335,13 @@ export default function Shop() {
       }
 
       const supabase = createClient();
-      const { data: storeData, error: storeError } = await supabase
-        .from('stores')
-        .select('*')
+      let { data, error } = await supabase
+        .from('stores_public')
+        .select('id,store_name,store_slug,whatsapp_number,logo_url,tagline,theme,bargain_mode,malayalam_mode,created_at,updated_at')
         .eq('store_slug', slug)
         .single();
 
-      if (storeError || !storeData) {
+      if (error || !data) {
         if (!cancelled) {
           setError('This storefront could not be found.');
           setLoaded(true);
@@ -322,12 +349,24 @@ export default function Shop() {
         return;
       }
 
-      const { data: productData, error: productError } = await supabase
-        .from('products')
+      const storeData = data;
+
+      let { data: productData, error: productError } = await supabase
+        .from('products_with_badges')
         .select('*')
         .eq('store_id', storeData.id)
-        .eq('is_active', true)
         .order('created_at', { ascending: false });
+
+      if (productError) {
+        const legacyResult = await supabase
+          .from('products')
+          .select(LEGACY_PUBLIC_PRODUCT_FIELDS)
+          .eq('store_id', storeData.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+        productData = legacyResult.data;
+        productError = legacyResult.error;
+      }
 
       const nextProducts = productData || [];
       let nextBundles = [];
@@ -359,7 +398,35 @@ export default function Shop() {
     return () => window.clearTimeout(timeout);
   }, [query]);
 
-  const searchResult = useMemo(() => filterProducts(products, debouncedQuery), [products, debouncedQuery]);
+  useEffect(() => {
+    if (!loaded) return;
+    const params = new URLSearchParams(window.location.search);
+    const setOrDelete = (name, value, defaultValue = '') => {
+      if (!value || value === defaultValue) params.delete(name);
+      else params.set(name, value);
+    };
+    setOrDelete('q', debouncedQuery);
+    setOrDelete('category', category);
+    setOrDelete('availability', availability, 'all');
+    setOrDelete('sort', sort, 'newest');
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  }, [availability, category, debouncedQuery, loaded, sort]);
+
+  const categories = useMemo(() => [...new Set(products.map((product) => String(product.category || '').trim()).filter(Boolean))].sort(), [products]);
+  const catalogProducts = useMemo(() => {
+    const filtered = products.filter((product) => {
+      if (category && product.category !== category) return false;
+      if (availability === 'in-stock' && !productIsAvailable(product)) return false;
+      return true;
+    });
+
+    return [...filtered].sort((first, second) => {
+      if (sort === 'price-low') return Number(first.price ?? Number.POSITIVE_INFINITY) - Number(second.price ?? Number.POSITIVE_INFINITY);
+      if (sort === 'price-high') return Number(second.price ?? Number.NEGATIVE_INFINITY) - Number(first.price ?? Number.NEGATIVE_INFINITY);
+      return new Date(second.created_at || 0) - new Date(first.created_at || 0);
+    });
+  }, [availability, category, products, sort]);
+  const searchResult = useMemo(() => filterProducts(catalogProducts, debouncedQuery), [catalogProducts, debouncedQuery]);
   const bundles = useMemo(() => hydrateBundles(bundleRows, products), [bundleRows, products]);
   const visibleBundles = useMemo(() => {
     if (!debouncedQuery.trim()) return bundles.slice(0, 4);
@@ -433,6 +500,31 @@ export default function Shop() {
           </div>
         </div>
 
+        <div className={styles.catalogControls}>
+          <label>
+            <span>Category</span>
+            <select value={category} onChange={(event) => setCategory(event.target.value)}>
+              <option value="">{copy.allCategories}</option>
+              {categories.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Availability</span>
+            <select value={availability} onChange={(event) => setAvailability(event.target.value)}>
+              <option value="all">{copy.allAvailability}</option>
+              <option value="in-stock">{copy.availableOnly}</option>
+            </select>
+          </label>
+          <label>
+            <span>Sort</span>
+            <select value={sort} onChange={(event) => setSort(event.target.value)}>
+              <option value="newest">{copy.newest}</option>
+              <option value="price-low">{copy.priceLow}</option>
+              <option value="price-high">{copy.priceHigh}</option>
+            </select>
+          </label>
+        </div>
+
         {searchResult.filters.hasFilters && (
           <div className={styles.filterReadout} aria-live="polite">
             <strong>{copy.activeFilters}</strong>
@@ -491,7 +583,7 @@ export default function Shop() {
               key={product.id}
               product={product}
               phone={store.whatsapp_number}
-              haggleMode={Boolean(store.haggle_mode)}
+              bargainMode={Boolean(store.bargain_mode)}
               index={index}
             />
           ))}
@@ -506,6 +598,10 @@ export default function Shop() {
       )}
 
       <footer><span>{store.store_name}</span><p>{copy.footer}</p></footer>
+
+      <a className={styles.updatesContact} href={createStoreUpdatesWhatsAppUrl({ phone: store.whatsapp_number, storeName: store.store_name, malayalam: language === 'ml' })} target="_blank" rel="noreferrer">
+        {copy.updates}
+      </a>
 
       <a className={styles.floatingContact} href={contactUrl} target="_blank" rel="noreferrer" aria-label={`${copy.contact}: ${store.store_name}`}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a9.84 9.84 0 0 0-8.43 14.92L2.1 22l5.2-1.36A9.93 9.93 0 1 0 12 2Zm0 17.86a7.88 7.88 0 0 1-4.02-1.1l-.29-.17-3.09.81.82-3-.19-.31A7.82 7.82 0 1 1 12 19.86Zm4.3-5.87c-.24-.12-1.4-.69-1.62-.77-.22-.08-.38-.12-.54.12-.16.24-.61.77-.75.93-.14.16-.28.18-.52.06-1.4-.7-2.32-1.25-3.25-2.83-.25-.43.25-.4.7-1.33.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.2-.47-.4-.4-.54-.41h-.46c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.69 2.58 4.1 3.62 1.52.66 2.12.71 2.88.6.46-.07 1.4-.57 1.6-1.13.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28Z" /></svg>

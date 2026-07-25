@@ -9,17 +9,22 @@ import { createClient } from '@/lib/supabase/client';
 import styles from './Dashboard.module.scss';
 
 const fallbackProduct = {
-  title: 'Midnight Gold Edit',
-  description: 'A standout boutique piece with an effortless premium finish. Designed to move from intimate celebrations to unforgettable evenings.',
-  price: 2499,
-  compareAtPrice: 2999,
-  stockQuantity: 5,
-  category: 'Saree',
-  occasion: 'Festive celebrations',
-  targetAudience: 'Festive shoppers and saree lovers',
-  confidence: 97,
-  insight: 'This product is likely to perform well during festive shopping because of its vibrant colour palette and traditional styling.',
-  vibeTags: ['Fresh Find', 'Evening Edit', 'Quiet Luxury'],
+  title: 'Untitled boutique piece',
+  description: 'Add a truthful product description before publishing.',
+  price: '',
+  priceSuggestion: null,
+  compareAtPrice: '',
+  stockQuantity: '',
+  category: 'Boutique edit',
+  categoryPath: [],
+  audienceTags: [],
+  occasion: '',
+  targetAudience: '',
+  confidence: null,
+  insight: '',
+  attributes: {},
+  vibeTags: [],
+  variants: [],
 };
 
 const GENERATION_STAGES = [
@@ -30,21 +35,64 @@ const GENERATION_STAGES = [
   '🏷️ Creating vibe tags…',
   '🛍️ Building storefront…',
 ];
+const SELLER_PRODUCT_FIELDS = 'id,store_id,image_url,title,description,price,compare_at_price,stock_quantity,category,category_path,vibe_tags,audience_tags,occasion,color_palette,attributes,ai_generated,is_active,view_count,created_at,updated_at';
 
 function premiumProduct(product) {
   const category = product?.category || 'Boutique edit';
   const tags = Array.isArray(product?.vibeTags) ? product.vibeTags : [];
+  const suggestedPrice = Number(product?.priceSuggestion ?? product?.suggestedPrice ?? product?.price);
   return {
     ...product,
     category,
     vibeTags: tags,
-    occasion: product?.occasion || tags[0] || 'Festive celebrations',
-    targetAudience: product?.targetAudience || 'Festive shoppers and style-led buyers',
-    confidence: Number(product?.confidence) || 97,
-    stockQuantity: Number.isFinite(Number(product?.stockQuantity)) ? Number(product.stockQuantity) : 5,
+    categoryPath: Array.isArray(product?.categoryPath) ? product.categoryPath : [],
+    audienceTags: Array.isArray(product?.audienceTags) ? product.audienceTags : [],
+    attributes: product?.attributes && typeof product.attributes === 'object' && !Array.isArray(product.attributes) ? product.attributes : {},
+    occasion: product?.occasion || tags[0] || '',
+    targetAudience: product?.targetAudience || '',
+    confidence: Number.isFinite(Number(product?.confidence)) ? Number(product.confidence) : null,
+    priceSuggestion: Number.isFinite(suggestedPrice) && suggestedPrice >= 0 ? suggestedPrice : null,
+    price: '',
+    stockQuantity: '',
     compareAtPrice: product?.compareAtPrice || '',
-    insight: product?.insight || `This ${category.toLowerCase()} is likely to perform well during festive shopping because of its distinctive styling and boutique-ready presentation.`,
+    insight: product?.insight || '',
+    variants: Array.isArray(product?.variants) ? product.variants : [],
   };
+}
+
+function optionsToText(options) {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) return '';
+  return Object.entries(options).map(([name, value]) => `${name}=${value}`).join(', ');
+}
+
+function optionsFromText(value) {
+  return Object.fromEntries(
+    String(value || '')
+      .split(',')
+      .map((pair) => pair.split('='))
+      .map(([name, ...rest]) => [String(name || '').trim(), rest.join('=').trim()])
+      .filter(([name, option]) => name && option),
+  );
+}
+
+function VariantEditor({ variants, onChange }) {
+  const rows = Array.isArray(variants) ? variants : [];
+  const update = (index, changes) => onChange(rows.map((variant, itemIndex) => (itemIndex === index ? { ...variant, ...changes } : variant)));
+
+  return (
+    <section className={styles.variantEditor}>
+      <div><span>Variants · optional</span><p>Use flexible options such as Size=M, Colour=Wine. Stock is never guessed.</p></div>
+      {rows.map((variant, index) => (
+        <div className={styles.variantRow} key={variant.id || `new-${index}`}>
+          <label>Options<input value={optionsToText(variant.options)} onChange={(event) => update(index, { options: optionsFromText(event.target.value) })} placeholder="Size=M, Colour=Wine" /></label>
+          <label>Variant price ₹<input type="number" min="0" value={variant.price ?? ''} onChange={(event) => update(index, { price: event.target.value })} placeholder="Uses base price" /></label>
+          <label>Stock<input type="number" min="0" value={variant.stockQuantity ?? ''} onChange={(event) => update(index, { stockQuantity: event.target.value })} /></label>
+          <button type="button" onClick={() => onChange(rows.filter((_item, itemIndex) => itemIndex !== index))}>Remove</button>
+        </div>
+      ))}
+      <button type="button" className={styles.addVariant} onClick={() => onChange([...rows, { options: {}, price: '', stockQuantity: '' }])}>+ Add a variant</button>
+    </section>
+  );
 }
 
 function compressImage(file) {
@@ -55,18 +103,71 @@ function compressImage(file) {
       const image = new window.Image();
       image.onerror = () => reject(new Error('Could not process the image.'));
       image.onload = () => {
-        const max = 1400;
+        const max = 960;
         const scale = Math.min(1, max / Math.max(image.width, image.height));
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(image.width * scale);
         canvas.height = Math.round(image.height * scale);
         canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
       };
       image.src = reader.result;
     };
     reader.readAsDataURL(file);
   });
+}
+
+async function uploadPublishMedia({ userId, references, generatedVisuals, visibleVisuals, cover }) {
+  const supabase = createClient();
+  const visible = new Set([cover, ...visibleVisuals]);
+  const sources = [
+    ...references.map((dataUrl, index) => ({ dataUrl, kind: 'seller_reference', index })),
+    ...generatedVisuals.map((dataUrl, index) => ({ dataUrl, kind: 'ai_visual', index })),
+  ].filter((item, index, all) => all.findIndex((candidate) => candidate.dataUrl === item.dataUrl) === index);
+  const uploaded = [];
+
+  try {
+    for (const source of sources) {
+      const isVisible = visible.has(source.dataUrl);
+      const bucket = isVisible ? 'product-images' : 'product-references';
+      let blob = await fetch(source.dataUrl).then((response) => response.blob());
+      if (blob.size > 4.5 * 1024 * 1024) {
+        const compressed = await compressImage(blob);
+        blob = await fetch(compressed).then((response) => response.blob());
+      }
+      const extension = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
+      const path = `${userId}/${crypto.randomUUID()}.${extension}`;
+      const { error } = await supabase.storage.from(bucket).upload(path, blob, {
+        contentType: blob.type || 'image/jpeg',
+        cacheControl: isVisible ? '31536000' : '3600',
+        upsert: false,
+      });
+
+      if (error) {
+        if (!isVisible && /bucket|not found|404/i.test(error.message || '')) continue;
+        throw new Error(`Could not upload ${isVisible ? 'a storefront visual' : 'a private reference'}: ${error.message}`);
+      }
+
+      const publicUrl = isVisible ? supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl : '';
+      uploaded.push({
+        bucket,
+        path,
+        publicUrl,
+        kind: source.kind,
+        isVisible,
+        isCover: source.dataUrl === cover,
+        sortOrder: source.index,
+      });
+    }
+    return uploaded;
+  } catch (error) {
+    await Promise.all(
+      [...new Set(uploaded.map((item) => item.bucket))].map((bucket) => (
+        supabase.storage.from(bucket).remove(uploaded.filter((item) => item.bucket === bucket).map((item) => item.path))
+      )),
+    );
+    throw error;
+  }
 }
 
 function slugify(value) {
@@ -78,20 +179,23 @@ function storeSettings(store) {
     storeName: store?.store_name || '',
     tagline: store?.tagline || '',
     whatsapp: store?.whatsapp_number || '',
-    haggleMode: Boolean(store?.haggle_mode),
+    bargainMode: Boolean(store?.bargain_mode),
     malayalamMode: Boolean(store?.malayalam_mode),
   };
 }
 
 export default function Dashboard() {
   const [session, setSession] = useState(null);
+  const [stores, setStores] = useState([]);
   const [store, setStore] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [storeForm, setStoreForm] = useState({ name: '', whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '' });
   const [image, setImage] = useState('');
+  const [referenceImages, setReferenceImages] = useState([]);
   const [product, setProduct] = useState(null);
   const [visuals, setVisuals] = useState([]);
+  const [visibleVisuals, setVisibleVisuals] = useState([]);
   const [selectedVisual, setSelectedVisual] = useState('');
   const [visualCount, setVisualCount] = useState(1);
   const [visualStatus, setVisualStatus] = useState('idle');
@@ -99,21 +203,44 @@ export default function Dashboard() {
   const [message, setMessage] = useState('');
   const [generationStage, setGenerationStage] = useState(0);
   const [generationSeconds, setGenerationSeconds] = useState(0);
+  const [pipelineMeta, setPipelineMeta] = useState({ merchandise: null, visuals: null });
   const [inventorySaving, setInventorySaving] = useState('');
   const [settingsForm, setSettingsForm] = useState(() => storeSettings());
   const [settingsStatus, setSettingsStatus] = useState('idle');
   const [settingsFeedback, setSettingsFeedback] = useState({ type: '', text: '' });
+  const [showStoreCreator, setShowStoreCreator] = useState(false);
   const visualGeneration = useRef(0);
 
   const loadProducts = useCallback(async (storeId) => {
     const supabase = createClient();
-    const { data } = await supabase.from('products').select('*').eq('store_id', storeId).order('created_at', { ascending: false });
-    setProducts(data || []);
+    const { data } = await supabase.from('products').select(SELLER_PRODUCT_FIELDS).eq('store_id', storeId).order('created_at', { ascending: false });
+    const productRows = data || [];
+    if (!productRows.length) {
+      setProducts([]);
+      return;
+    }
+    const { data: variantRows, error: variantError } = await supabase.from('product_variants').select('*').in('product_id', productRows.map((item) => item.id));
+    const variantsByProduct = new Map();
+    if (!variantError) {
+      (variantRows || []).forEach((variant) => {
+        const current = variantsByProduct.get(variant.product_id) || [];
+        current.push({
+          id: variant.id,
+          options: variant.option_values || {},
+          price: variant.price ?? '',
+          stockQuantity: variant.stock_quantity,
+          isActive: variant.is_active !== false,
+        });
+        variantsByProduct.set(variant.product_id, current);
+      });
+    }
+    setProducts(productRows.map((item) => ({ ...item, variants: variantsByProduct.get(item.id) || [] })));
   }, []);
 
   const loadSeller = useCallback(async (activeSession) => {
     if (!activeSession?.user) {
       setSession(null);
+      setStores([]);
       setStore(null);
       setSettingsForm(storeSettings());
       setLoading(false);
@@ -122,10 +249,14 @@ export default function Dashboard() {
 
     setSession(activeSession);
     const supabase = createClient();
-    const { data } = await supabase.from('stores').select('*').eq('owner_id', activeSession.user.id).maybeSingle();
-    setStore(data || null);
-    setSettingsForm(storeSettings(data));
-    if (data) await loadProducts(data.id);
+    const { data } = await supabase.from('stores').select('*').eq('owner_id', activeSession.user.id).order('created_at', { ascending: true });
+    const sellerStores = data || [];
+    const rememberedStoreId = window.localStorage.getItem('anya-active-store');
+    const activeStore = sellerStores.find((item) => item.id === rememberedStoreId) || sellerStores[0] || null;
+    setStores(sellerStores);
+    setStore(activeStore);
+    setSettingsForm(storeSettings(activeStore));
+    if (activeStore) await loadProducts(activeStore.id);
     setLoading(false);
   }, [loadProducts]);
 
@@ -137,6 +268,17 @@ export default function Dashboard() {
     });
     return () => listener.subscription.unsubscribe();
   }, [loadSeller]);
+
+  const switchStore = async (storeId) => {
+    const nextStore = stores.find((item) => item.id === storeId);
+    if (!nextStore || nextStore.id === store?.id) return;
+    setStore(nextStore);
+    setSettingsForm(storeSettings(nextStore));
+    setProducts([]);
+    setMessage('');
+    window.localStorage.setItem('anya-active-store', nextStore.id);
+    await loadProducts(nextStore.id);
+  };
 
   useEffect(() => {
     if (status !== 'generating') return undefined;
@@ -162,34 +304,42 @@ export default function Dashboard() {
       owner_id: session.user.id,
       store_name: storeForm.name.trim(),
       whatsapp_number: cleanWhatsapp,
-      store_slug: `${baseSlug}-${session.user.id.slice(0, 6)}`,
+      store_slug: `${baseSlug}-${session.user.id.slice(0, 6)}-${Date.now().toString(36).slice(-4)}`,
     }).select().single();
 
     if (error) setMessage(error.message);
     else {
+      setStores((current) => [...current, data]);
       setStore(data);
       setSettingsForm(storeSettings(data));
+      window.localStorage.setItem('anya-active-store', data.id);
+      setProducts([]);
+      setShowStoreCreator(false);
+      setStoreForm({ name: '', whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '' });
+      setMessage('Storefront created. Add its first product.');
     }
     setStatus('idle');
   };
 
   const selectImage = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-      setMessage('Choose a JPEG, PNG or WebP under 5 MB.');
+    const files = [...(event.target.files || [])].slice(0, 3);
+    if (!files.length) return;
+    if (files.some((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024)) {
+      setMessage('Choose one to three JPEG, PNG or WebP images, each under 5 MB.');
       return;
     }
 
     try {
-      const compressed = await compressImage(file);
+      const compressed = await Promise.all(files.map(compressImage));
       visualGeneration.current += 1;
       setVisualStatus('idle');
-      setImage(compressed);
-      setSelectedVisual(compressed);
+      setReferenceImages(compressed);
+      setImage(compressed[0]);
+      setSelectedVisual(compressed[0]);
+      setVisibleVisuals([compressed[0]]);
       setVisuals([]);
       setProduct(null);
-      setMessage('Image ready. Generate the listing and optional model visuals.');
+      setMessage(`${compressed.length} reference image${compressed.length === 1 ? '' : 's'} ready. The first is the cover; Anya will treat them as the same product.`);
     } catch (error) {
       setMessage(error.message);
     }
@@ -204,11 +354,12 @@ export default function Dashboard() {
       const response = await fetch('/api/merchandise', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image, mimeType: 'image/jpeg' }),
+        body: JSON.stringify({ accessToken: session.access_token, image, images: referenceImages, mimeType: 'image/jpeg' }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setProduct(premiumProduct(data.product));
+      setPipelineMeta((current) => ({ ...current, merchandise: data.meta || null }));
       setGenerationSeconds((performance.now() - startedAt) / 1000);
       setMessage('Listing ready. Edit anything before publishing.');
     } catch (error) {
@@ -221,7 +372,7 @@ export default function Dashboard() {
   };
 
   const generateVisuals = async () => {
-    if (!image) return setMessage('Choose a saree photo first.');
+    if (!image) return setMessage('Choose a product photo first.');
     const remaining = Math.min(visualCount, 5 - visuals.length);
     if (remaining < 1) return setMessage('You already have five model looks. Choose your favourite and publish.');
     const run = ++visualGeneration.current;
@@ -229,21 +380,44 @@ export default function Dashboard() {
     setMessage(`Nano Banana is creating ${remaining} optional model look${remaining > 1 ? 's' : ''}. You can publish the original now.`);
     try {
       const generated = [];
+      let failureMessage = '';
+      let latestMeta = null;
       for (let index = 0; index < remaining; index += 1) {
-        setMessage(`Creating optional look ${index + 1} of ${remaining}… publishing stays available.`);
+        setMessage(`Creating optional visual ${index + 1} of ${remaining}… completed looks are kept safely.`);
         const response = await fetch('/api/visuals', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image, mimeType: 'image/jpeg' }),
+          headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
+          body: JSON.stringify({
+            accessToken: session.access_token,
+            image,
+            images: referenceImages,
+            mimeType: 'image/jpeg',
+            count: 1,
+            variationIndex: visuals.length + index,
+            product,
+          }),
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error);
+        if (!response.ok) {
+          failureMessage = data.error || 'One visual could not be created.';
+          break;
+        }
         if (run !== visualGeneration.current) return;
-        generated.push(...data.visuals);
-        setVisuals((current) => [...current, ...data.visuals].slice(0, 5));
+        const visual = data.visuals?.[0];
+        if (!visual) {
+          failureMessage = 'One visual could not be created.';
+          break;
+        }
+        generated.push(visual);
+        latestMeta = data.meta || latestMeta;
+        setVisuals((current) => [...current, visual].slice(0, 5));
       }
+      if (!generated.length) throw new Error(failureMessage || 'Visuals could not be created.');
+      setPipelineMeta((current) => ({ ...current, visuals: latestMeta }));
       if (run === visualGeneration.current) {
-        setMessage(`${generated.length} model look${generated.length === 1 ? ' is' : 's are'} ready. Choose one, or keep the original.`);
+        setMessage(failureMessage
+          ? `${generated.length} visual${generated.length === 1 ? '' : 's'} ready. ${failureMessage}`
+          : `${generated.length} model look${generated.length === 1 ? ' is' : 's are'} ready. Choose one, or keep the original.`);
       }
     } catch (error) {
       if (run === visualGeneration.current) setMessage(`${error.message} Keep the original selected and publish normally.`);
@@ -254,16 +428,48 @@ export default function Dashboard() {
 
   const publish = async () => {
     if (!product || !selectedVisual || !store) return;
+    if (!product.title?.trim() || !product.description?.trim() || !Number.isFinite(Number(product.price)) || Number(product.price) < 0) {
+      setMessage('Confirm a title, description, and selling price before publishing.');
+      return;
+    }
+    if (!Number.isInteger(Number(product.stockQuantity)) || Number(product.stockQuantity) < 0) {
+      setMessage('Enter the real stock quantity before publishing.');
+      return;
+    }
     visualGeneration.current += 1;
     setVisualStatus('idle');
     setStatus('publishing');
-    setMessage('Publishing to your storefront…');
+    setMessage('Uploading the verified gallery…');
+    let uploadedMedia = [];
     try {
+      uploadedMedia = await uploadPublishMedia({
+        userId: session.user.id,
+        references: referenceImages,
+        generatedVisuals: visuals,
+        visibleVisuals,
+        cover: selectedVisual,
+      });
+      const coverMedia = uploadedMedia.find((item) => item.isCover && item.publicUrl) || uploadedMedia.find((item) => item.publicUrl);
+      if (!coverMedia) throw new Error('Choose at least one public storefront visual.');
+      setMessage('Publishing the verified listing…');
       const response = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'omit',
-        body: JSON.stringify({ accessToken: session.access_token, storeId: store.id, image: selectedVisual, product }),
+        body: JSON.stringify({
+          accessToken: session.access_token,
+          storeId: store.id,
+          imageUrl: coverMedia.publicUrl,
+          media: uploadedMedia,
+          product,
+          generation: {
+            durationSeconds: generationSeconds,
+            referenceCount: referenceImages.length,
+            requestedCount: visuals.length,
+            modelName: pipelineMeta.visuals?.model || pipelineMeta.merchandise?.model || null,
+            promptVersion: pipelineMeta.visuals?.promptVersion || pipelineMeta.merchandise?.promptVersion || null,
+          },
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Product publishing failed.');
@@ -271,11 +477,22 @@ export default function Dashboard() {
       setProducts((current) => [data.product, ...current.filter((item) => item.id !== data.product.id)]);
       await loadProducts(store.id);
       setImage('');
+      setReferenceImages([]);
       setSelectedVisual('');
       setVisuals([]);
+      setVisibleVisuals([]);
       setProduct(null);
+      setPipelineMeta({ merchandise: null, visuals: null });
       setMessage(data.bundle ? 'Published with a complementary bundle. Your storefront is live.' : 'Published. Add one more product to create an automatic bundle.');
     } catch (error) {
+      if (uploadedMedia.length) {
+        const supabase = createClient();
+        await Promise.all(
+          [...new Set(uploadedMedia.map((item) => item.bucket))].map((bucket) => (
+            supabase.storage.from(bucket).remove(uploadedMedia.filter((item) => item.bucket === bucket).map((item) => item.path))
+          )),
+        );
+      }
       setMessage(error.message);
     } finally {
       setStatus('idle');
@@ -308,11 +525,22 @@ export default function Dashboard() {
           category: item.category,
           occasion: item.occasion,
           vibeTags: item.vibe_tags || [],
+          variants: item.variants || [],
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Inventory update failed.');
-      setProducts((current) => current.map((productItem) => (productItem.id === item.id ? data.product : productItem)));
+      const normalizedProduct = {
+        ...data.product,
+        variants: (data.product.variants || item.variants || []).map((variant) => ({
+          id: variant.id,
+          options: variant.option_values || variant.options || {},
+          price: variant.price ?? '',
+          stockQuantity: variant.stock_quantity ?? variant.stockQuantity ?? '',
+          isActive: variant.is_active !== false && variant.isActive !== false,
+        })),
+      };
+      setProducts((current) => current.map((productItem) => (productItem.id === item.id ? normalizedProduct : productItem)));
       setMessage(stockQuantity === 0 ? `${item.title} is now marked sold out.` : `${item.title} inventory updated.`);
     } catch (error) {
       setMessage(error.message);
@@ -333,7 +561,7 @@ export default function Dashboard() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Visibility update failed.');
-      setProducts((current) => current.map((productItem) => (productItem.id === item.id ? data.product : productItem)));
+      setProducts((current) => current.map((productItem) => (productItem.id === item.id ? { ...data.product, variants: productItem.variants || [] } : productItem)));
       setMessage(nextActive ? `${item.title} is visible in the storefront.` : `${item.title} is hidden from customers.`);
     } catch (error) {
       setMessage(error.message);
@@ -394,7 +622,7 @@ export default function Dashboard() {
           storeName,
           tagline,
           whatsapp: cleanWhatsapp,
-          haggleMode: settingsForm.haggleMode,
+          bargainMode: settingsForm.bargainMode,
           malayalamMode: settingsForm.malayalamMode,
         }),
       });
@@ -402,6 +630,7 @@ export default function Dashboard() {
       if (!response.ok) throw new Error(data.error || 'Store settings could not be saved.');
 
       setStore(data.store);
+      setStores((current) => current.map((item) => (item.id === data.store.id ? data.store : item)));
       setSettingsForm(storeSettings(data.store));
       setSettingsFeedback({ type: 'success', text: 'Saved. Your public storefront is up to date.' });
     } catch (error) {
@@ -436,21 +665,49 @@ export default function Dashboard() {
   }
 
   const liveProductCount = products.filter((item) => item.is_active !== false).length;
-  const totalStock = products.reduce((sum, item) => sum + Math.max(0, Number(item.stock_quantity ?? 1) || 0), 0);
+  const totalStock = products.reduce((sum, item) => {
+    if (item.variants?.length) {
+      return sum + item.variants.reduce((variantSum, variant) => variantSum + Math.max(0, Number(variant.stockQuantity) || 0), 0);
+    }
+    return sum + Math.max(0, Number(item.stock_quantity ?? 0) || 0);
+  }, 0);
   const totalViews = products.reduce((sum, item) => sum + Math.max(0, Number(item.view_count) || 0), 0);
 
   return (
     <main className={styles.page}>
       <nav>
         <Link href="/" className={styles.brand}>Anya<span>.</span></Link>
-        <div><Link href={`/shop?store=${store.store_slug}`} className={styles.storeLink}>View storefront ↗</Link><button onClick={logout}>Sign out</button></div>
+        <div className={styles.navActions}>
+          <label className={styles.storeSwitcher}>
+            <span className={styles.srOnly}>Active storefront</span>
+            <select value={store.id} onChange={(event) => switchStore(event.target.value)}>
+              {stores.map((item) => <option value={item.id} key={item.id}>{item.store_name}</option>)}
+            </select>
+          </label>
+          <button type="button" onClick={() => setShowStoreCreator((current) => !current)}>+ Store</button>
+          <Link href={`/shop?store=${store.store_slug}`} className={styles.storeLink}>View storefront ↗</Link>
+          <button onClick={logout}>Sign out</button>
+        </div>
       </nav>
 
       <header>
         <span>{store.store_name} · Seller studio</span>
         <h1>Style it.<br /><em>Publish it.</em></h1>
-        <p>Upload a saree, let Anya merchandise it, then create model-worn visuals with Nano Banana.</p>
+        <p>Upload one to three views of any fashion product. Anya drafts the listing; you verify every sellable fact before it goes live.</p>
       </header>
+
+      <AnimatePresence>
+        {showStoreCreator && (
+          <motion.section className={styles.inlineStoreCreator} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+            <form onSubmit={createStore}>
+              <div><span>Another storefront</span><h2>Start a distinct boutique.</h2></div>
+              <label>Store name<input value={storeForm.name} onChange={(event) => setStoreForm({ ...storeForm, name: event.target.value })} required /></label>
+              <label>WhatsApp with country code<input value={storeForm.whatsapp} onChange={(event) => setStoreForm({ ...storeForm, whatsapp: event.target.value })} required /></label>
+              <button disabled={status === 'saving'}>{status === 'saving' ? 'Creating…' : 'Create storefront'}</button>
+            </form>
+          </motion.section>
+        )}
+      </AnimatePresence>
 
       <motion.section
         className={styles.storeSettings}
@@ -504,11 +761,11 @@ export default function Dashboard() {
             <label className={styles.modeToggle}>
               <input
                 type="checkbox"
-                checked={settingsForm.haggleMode}
-                onChange={(event) => setSettingsForm({ ...settingsForm, haggleMode: event.target.checked })}
+                checked={settingsForm.bargainMode}
+                onChange={(event) => setSettingsForm({ ...settingsForm, bargainMode: event.target.checked })}
               />
               <span className={styles.toggleTrack} aria-hidden="true"><i /></span>
-              <span className={styles.toggleCopy}><strong>Haggle mode</strong><small>Invite friendly price conversations.</small></span>
+              <span className={styles.toggleCopy}><strong>Bargain mode</strong><small>Invite friendly price conversations.</small></span>
             </label>
             <label className={styles.modeToggle}>
               <input
@@ -545,8 +802,8 @@ export default function Dashboard() {
       <section className={styles.workspace}>
         <div className={styles.uploadCard}>
           <label className={`${styles.dropzone} ${image ? styles.hasImage : ''}`}>
-            {image ? <Image src={image} alt="Product preview" fill unoptimized sizes="(max-width: 820px) 100vw, 42vw" /> : <div><strong>Drop your saree photo</strong><span>JPEG, PNG or WebP · max 5 MB</span></div>}
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={selectImage} />
+            {image ? <><Image src={image} alt="Product preview" fill unoptimized sizes="(max-width: 820px) 100vw, 42vw" /><span className={styles.referenceCount}>{referenceImages.length} same-product view{referenceImages.length === 1 ? '' : 's'}</span></> : <div><strong>Drop 1–3 product photos</strong><span>Same product, different angles · JPEG, PNG or WebP · max 5 MB each</span></div>}
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={selectImage} />
           </label>
           <div className={styles.generationActions}>
             <button className={styles.generate} onClick={generateProduct} disabled={!image || status === 'generating' || status === 'publishing'}>{status === 'generating' ? GENERATION_STAGES[generationStage] : 'Generate product details'}</button>
@@ -563,28 +820,45 @@ export default function Dashboard() {
         <AnimatePresence mode="wait">
           {product ? (
             <motion.div className={styles.editor} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-              <div className={styles.previewHeader}><span className={styles.ready}>✨ AI Generated · Ready to publish</span><strong>★★★★★ AI Merchandising</strong></div>
+              <div className={styles.previewHeader}><span className={styles.ready}>✨ AI draft · Seller verification required</span><strong>{product.confidence !== null ? `${product.confidence}% detection confidence` : 'Review every field'}</strong></div>
               <label>Product name<input value={product.title} onChange={(event) => setProduct({ ...product, title: event.target.value })} /></label>
               <label>Description<textarea value={product.description} onChange={(event) => setProduct({ ...product, description: event.target.value })} /></label>
+              {product.priceSuggestion !== null && (
+                <div className={styles.priceSuggestion}>
+                  <span>AI price suggestion · not yet applied</span>
+                  <strong>₹{Number(product.priceSuggestion).toLocaleString('en-IN')}</strong>
+                  <button type="button" onClick={() => setProduct({ ...product, price: product.priceSuggestion })}>Use this suggestion</button>
+                </div>
+              )}
               <div className={styles.row}>
-                <label>Price (₹)<input type="number" min="1" value={product.price} onChange={(event) => setProduct({ ...product, price: event.target.value })} /></label>
+                <label>Selling price (₹) · confirm<input type="number" min="0" value={product.price} onChange={(event) => setProduct({ ...product, price: event.target.value })} placeholder="Seller-confirmed price" /></label>
                 <label>Original price (₹)<input type="number" min="1" value={product.compareAtPrice} onChange={(event) => setProduct({ ...product, compareAtPrice: event.target.value })} placeholder="Optional" /></label>
               </div>
               <div className={styles.row}>
-                <label>Stock quantity<input type="number" min="0" value={product.stockQuantity} onChange={(event) => setProduct({ ...product, stockQuantity: event.target.value })} /></label>
+                <label>Real stock quantity · confirm<input type="number" min="0" value={product.stockQuantity} onChange={(event) => setProduct({ ...product, stockQuantity: event.target.value })} placeholder="Never guessed by AI" /></label>
                 <label>Category<input value={product.category} onChange={(event) => setProduct({ ...product, category: event.target.value })} /></label>
               </div>
               <label>Occasion<input value={product.occasion} onChange={(event) => setProduct({ ...product, occasion: event.target.value })} /></label>
-              <div className={styles.tags}>{product.vibeTags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+              <label>Category path<input value={(product.categoryPath || []).join(' › ')} onChange={(event) => setProduct({ ...product, categoryPath: event.target.value.split('›').map((value) => value.trim()).filter(Boolean) })} placeholder="Fashion › Women › Tops" /></label>
+              <label>Vibe tags<input value={product.vibeTags.join(', ')} onChange={(event) => setProduct({ ...product, vibeTags: event.target.value.split(',').map((value) => value.trim()).filter(Boolean) })} /></label>
+              {Object.keys(product.attributes || {}).length > 0 && (
+                <div className={styles.attributeEditor}>
+                  <span>Detected attributes · correct anything uncertain</span>
+                  {Object.entries(product.attributes).map(([name, value]) => (
+                    <label key={name}>{name.replaceAll('_', ' ')}<input value={Array.isArray(value) ? value.join(', ') : String(value)} onChange={(event) => setProduct({ ...product, attributes: { ...product.attributes, [name]: event.target.value } })} /></label>
+                  ))}
+                </div>
+              )}
+              <VariantEditor variants={product.variants} onChange={(variants) => setProduct({ ...product, variants })} />
               <aside className={styles.aiCard}>
-                <div><span>✨ AI Merchandising</span><strong>Confidence {product.confidence}%</strong></div>
+                <div><span>✨ Seller-only AI notes</span><strong>{product.confidence !== null ? `Confidence ${product.confidence}%` : 'Manual review'}</strong></div>
                 <dl>
                   <div><dt>Occasion</dt><dd>{product.occasion}</dd></div>
-                  <div><dt>Target audience</dt><dd>{product.targetAudience}</dd></div>
-                  <div><dt>Price recommendation</dt><dd>₹{Number(product.price).toLocaleString('en-IN')}</dd></div>
+                  <div><dt>Target audience</dt><dd>{product.targetAudience || 'Not inferred'}</dd></div>
+                  <div><dt>Price suggestion</dt><dd>{product.priceSuggestion !== null ? `₹${Number(product.priceSuggestion).toLocaleString('en-IN')}` : 'Seller decides'}</dd></div>
                   <div><dt>Generated in</dt><dd>{generationSeconds.toFixed(1)}s</dd></div>
                 </dl>
-                <blockquote><span>AI insight</span>{product.insight}</blockquote>
+                {product.insight && <blockquote><span>AI insight</span>{product.insight}</blockquote>}
               </aside>
               <button className={styles.publish} onClick={publish} disabled={status === 'publishing'}>{status === 'publishing' ? 'Publishing…' : 'Publish to storefront ↗'}</button>
             </motion.div>
@@ -601,13 +875,16 @@ export default function Dashboard() {
 
       {(visuals.length > 0 || image) && (
         <section className={styles.visualsSection}>
-          <div><span>Product visual</span><h2>Choose what customers see.</h2><p>The original is always available. Nano Banana looks are optional.</p></div>
+          <div><span>Product gallery</span><h2>Choose the cover and public views.</h2><p>References stay private unless you mark them visible. Generated visuals are always optional.</p></div>
           <div className={styles.visualGrid}>
-            {[image, ...visuals].filter(Boolean).map((visual, index) => (
-              <button key={`${visual.slice(-28)}-${index}`} className={selectedVisual === visual ? styles.selected : ''} onClick={() => setSelectedVisual(visual)}>
-                <Image src={visual} alt={index === 0 ? 'Original product' : `Generated model look ${index}`} fill unoptimized sizes="(max-width: 560px) 50vw, 220px" />
-                <span>{index === 0 ? 'Original' : `Look ${index}`}</span>
-              </button>
+            {[...referenceImages, ...visuals].filter(Boolean).map((visual, index) => (
+              <article key={`${visual.slice(-28)}-${index}`} className={selectedVisual === visual ? styles.selected : ''}>
+                <button type="button" className={styles.visualCover} onClick={() => { setSelectedVisual(visual); setVisibleVisuals((current) => [...new Set([...current, visual])]); }}>
+                  <Image src={visual} alt={index < referenceImages.length ? `Reference ${index + 1}` : `Generated visual ${index - referenceImages.length + 1}`} fill unoptimized sizes="(max-width: 560px) 50vw, 220px" />
+                  <span>{index < referenceImages.length ? `Reference ${index + 1}` : `AI visual ${index - referenceImages.length + 1}`}</span>
+                </button>
+                <label><input type="checkbox" checked={visibleVisuals.includes(visual)} disabled={selectedVisual === visual} onChange={(event) => setVisibleVisuals((current) => event.target.checked ? [...new Set([...current, visual])] : current.filter((item) => item !== visual))} />{selectedVisual === visual ? 'Public cover' : 'Public'}</label>
+              </article>
             ))}
           </div>
         </section>
@@ -635,6 +912,7 @@ export default function Dashboard() {
                   <label className={styles.wideField}>Vibe tags<input value={(item.vibe_tags || []).join(', ')} onChange={(event) => updateInventoryDraft(item.id, 'vibe_tags', event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean))} /></label>
                   <label className={styles.wideField}>Description<textarea value={item.description || ''} onChange={(event) => updateInventoryDraft(item.id, 'description', event.target.value)} /></label>
                 </div>
+                <VariantEditor variants={item.variants || []} onChange={(variants) => updateInventoryDraft(item.id, 'variants', variants)} />
                 <div className={styles.managementActions}>
                   <button onClick={() => saveInventoryItem(item)} disabled={inventorySaving === item.id}>{inventorySaving === item.id ? 'Saving…' : 'Save changes'}</button>
                   <button onClick={() => toggleInventoryVisibility(item)} disabled={inventorySaving === item.id}>{item.is_active === false ? 'Show in store' : 'Hide from store'}</button>

@@ -2,9 +2,9 @@
 
 ### One product photo in. A polished, WhatsApp-first storefront out.
 
-Anya AI is a working storefront studio for independent sellers. Upload a boutique product photo, let Gemini turn it into ready-to-edit merchandise, optionally place the saree on a model with Nano Banana, and publish it to a responsive storefront. Buyers can open a rich WhatsApp order or haggle message without carts, payment gateways, or a new account.
+Anya AI is a working storefront studio for independent sellers. Upload one to three reference photos, let Gemini turn any product into ready-to-edit merchandise, optionally generate up to five product-aware campaign visuals, and publish it to a responsive storefront. Buyers can open a rich WhatsApp order or bargain message without carts, payment gateways, or a new account.
 
-**The core demo:** photo -> AI merchandise -> model look -> live product page -> WhatsApp order.
+**The core demo:** product references -> AI merchandise -> campaign gallery -> live product page -> WhatsApp order.
 
 | Project | Details |
 |---|---|
@@ -19,20 +19,21 @@ Anya AI is a working storefront studio for independent sellers. Upload a boutiqu
 1. Open `/dashboard`, create an email/password account, and name the storefront.
 2. Upload a JPEG, PNG, or WebP product photo (up to 5 MB).
 3. Generate the title, description, price, category, and vibe tags with Gemini.
-4. Edit the listing, add stock and an original price, then optionally generate up to five Nano Banana model looks.
+4. Verify the listing, accept or replace the suggested price, add stock and options, then optionally generate up to five product-aware visuals.
 5. Pick the original or generated visual and publish. Repeat to build a multi-product collection.
-6. Open the public storefront, search the collection, share a product, then try **Buy on WhatsApp** and **Haggle**.
+6. Open the public storefront, search the collection, share a product, then try **Buy on WhatsApp** and **Bargain**.
 
 ## What is shipped
 
-- **Seller access:** Supabase email/password authentication, session handling, and one owner-controlled storefront per account.
+- **Seller access:** Supabase email/password authentication, session handling, and multiple owner-controlled storefronts per account.
 - **Multi-product seller studio:** publish repeated drops and manage the full catalogue from one screen.
-- **Gemini merchandising:** image-to-title, description, INR price estimate, category, and vibe tags, with an editable fallback if generation fails.
-- **Nano Banana model looks:** generate optional model-worn saree editorials with Gemini image generation, keep up to five, and choose the winning visual before publish.
-- **Public commerce pages:** a searchable store at `/shop?store=<slug>` plus a metadata-rich page for every product at `/product/<id>`.
+- **Grounded Gemini merchandising:** free-form product classification, editable attributes and tags, and an explicitly optional price suggestion. Seller corrections always win; AI never invents stock, SKUs, sizes, materials, or components.
+- **Product-aware visual studio:** generate one to five optional campaign visuals with Gemini image generation, keep every successful result if a batch is partial, and choose the public cover and gallery before publishing.
+- **Public commerce pages:** a URL-filtered, searchable and sortable store at `/shop?store=<slug>` plus a metadata-rich page for every product at `/product/<id>`.
 - **Sharing:** native share and copy-link fallbacks on cards, plus WhatsApp, Instagram, Facebook, X, Pinterest, and LinkedIn actions on product pages.
-- **WhatsApp conversion:** distinct, pre-filled buy and haggle messages carrying product, price, category, occasion, and vibe context.
+- **WhatsApp conversion:** distinct, pre-filled buy and bargain messages carrying product, price, category, occasion, vibe, selected options, and the product URL.
 - **Premium inventory controls:** owner editing, price and compare-at pricing, discount treatment, stock counts, limited-stock states, sold-out protection, hide/show, and permanent deletion.
+- **Protected AI pipeline:** authenticated generation routes, durable seller quotas, request bounds, idempotency, one retry, safe visual prompts, and private reference storage.
 - **Kerala editorial UI:** responsive dark-ink, ivory, and vermilion art direction with Instrument Serif, Poppins, motion, strong focus states, and layouts tuned from phones to wide screens.
 - **Protected data:** Row Level Security, owner checks on mutations, server-only service credentials, validated uploads, and a public `product-images` bucket.
 
@@ -82,10 +83,10 @@ Open [http://localhost:3000](http://localhost:3000). For a production check, run
 In a new Supabase project:
 
 1. Keep the Email auth provider enabled. Set the Auth Site URL to `http://localhost:3000` while developing and add the deployed `/dashboard` redirect URL for production.
-2. Open the SQL Editor and run [`.agents/skills/anya-supabase-setup/supabase-setup.sql`](./.agents/skills/anya-supabase-setup/supabase-setup.sql) in full.
-3. Then run [`.agents/skills/anya-supabase-setup/premium-commerce-upgrade.sql`](./.agents/skills/anya-supabase-setup/premium-commerce-upgrade.sql) in full. It is safe to rerun and is required for older databases to gain stock and compare-at pricing.
+2. Open the SQL Editor and run [`.agents/skills/anya-supabase-setup/supabase-setup.sql`](./.agents/skills/anya-supabase-setup/supabase-setup.sql) in full for a new database.
+3. Run the single forward migration [`.agents/skills/anya-supabase-setup/product-generalization.sql`](./.agents/skills/anya-supabase-setup/product-generalization.sql) in full. Existing databases only need this step; it is transactional, preserves current products, and is safe to rerun.
 
-The initialization creates `stores`, `products`, and `bundles`, the public storefront view, indexes, triggers, RLS policies, Realtime registration, and the 5 MB `product-images` storage bucket.
+The migration adds flexible product attributes, variants, public galleries, private references, AI job metadata, seller quotas, public-safe views, indexes, triggers, and tightened RLS/storage policies. Existing product images are backfilled into the new media model.
 
 ## Environment variables
 
@@ -106,11 +107,12 @@ NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
 
 - [x] Responsive landing page and Kerala editorial design system
 - [x] Supabase authentication, schema, storage, and RLS
-- [x] Store onboarding and multi-product seller studio
-- [x] Gemini merchandise generation with editable fallback
-- [x] Nano Banana model-look generation
+- [x] Multi-store onboarding and multi-product seller studio
+- [x] Grounded Gemini merchandise generation with seller-authoritative editing
+- [x] One-to-three references and one-to-five product-aware visual generation
+- [x] Cover selection, public galleries, flexible variants, and private AI metadata
 - [x] Public storefront search and shareable product pages
-- [x] Rich WhatsApp buy and haggle checkout
+- [x] Rich WhatsApp buy and bargain checkout
 - [x] Stock, discounts, sold-out states, edit, hide, and delete controls
 - [x] Social sharing, metadata, sitemap, robots, and Open Graph image
 - [x] Mobile, tablet, and desktop responsive treatment
