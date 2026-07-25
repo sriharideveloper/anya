@@ -212,7 +212,6 @@
   .settingsFields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settingsControls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settingsControls > button { grid-column: 1 / -1; }
-  .settingsControls > button { grid-column: 1 / -1; }
   .visualGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (min-width: 820px) {
@@ -223,7 +222,7 @@
   .workspace { grid-template-columns: 1fr 1fr; align-items: stretch; }
   .uploadCard, .editor, .empty { min-height: 620px; }
   .visualsSection { grid-template-columns: 220px 1fr; align-items: start; }
-  .visualsContainer { grid-template-columns: 260px 1fr; }
+  .visualsContainer { grid-template-columns: 280px 1fr; gap: 1.5rem; }
   .visualGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
 }
 
@@ -238,7 +237,8 @@
 }
 @media (min-width: 1120px) {
   .visualsSection { grid-template-columns: 260px 1fr; }
-  .visualsContainer { grid-template-columns: 320px 1fr; gap: 2rem; }
-  .visualGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .visualsContainer { grid-template-columns: 420px 1fr; gap: 2.5rem; align-items: stretch; }
+  .visualGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
   .inventoryImage { width: 90px; }
+  .inventoryGrid article { grid-template-columns: 90px 1fr; }
 }

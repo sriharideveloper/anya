@@ -314,6 +314,8 @@ export default function Shop() {
   const [sort, setSort] = useState('newest');
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
+  const [searchResult, setSearchResult] = useState({ items: [], filters: { hasFilters: false, terms: [] } });
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -412,21 +414,69 @@ export default function Shop() {
     window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
   }, [availability, category, debouncedQuery, loaded, sort]);
 
-  const categories = useMemo(() => [...new Set(products.map((product) => String(product.category || '').trim()).filter(Boolean))].sort(), [products]);
-  const catalogProducts = useMemo(() => {
-    const filtered = products.filter((product) => {
-      if (category && product.category !== category) return false;
-      if (availability === 'in-stock' && !productIsAvailable(product)) return false;
-      return true;
-    });
+  // Server-side search and filtering effect
+  useEffect(() => {
+    if (!loaded || !store) return;
+    let cancelled = false;
 
-    return [...filtered].sort((first, second) => {
-      if (sort === 'price-low') return Number(first.price ?? Number.POSITIVE_INFINITY) - Number(second.price ?? Number.POSITIVE_INFINITY);
-      if (sort === 'price-high') return Number(second.price ?? Number.NEGATIVE_INFINITY) - Number(first.price ?? Number.NEGATIVE_INFINITY);
-      return new Date(second.created_at || 0) - new Date(first.created_at || 0);
-    });
-  }, [availability, category, products, sort]);
-  const searchResult = useMemo(() => filterProducts(catalogProducts, debouncedQuery), [catalogProducts, debouncedQuery]);
+    const runSearch = async () => {
+      setIsSearching(true);
+      const filters = parseSearchQuery(debouncedQuery);
+      
+      const supabase = createClient();
+      let queryBuilder = supabase
+        .from('products_with_badges')
+        .select('*')
+        .eq('store_id', store.id);
+
+      if (category) {
+        queryBuilder = queryBuilder.eq('category', category);
+      }
+      
+      // We apply availability filters
+      if (availability === 'in-stock') {
+        queryBuilder = queryBuilder.gt('stock_quantity', 0);
+      }
+      
+      if (filters.minPrice !== null) {
+        queryBuilder = queryBuilder.gte('price', filters.minPrice);
+      }
+      if (filters.maxPrice !== null) {
+        queryBuilder = queryBuilder.lte('price', filters.maxPrice);
+      }
+      
+      if (filters.terms.length > 0) {
+        const tsQuery = filters.terms.join(' & ');
+        queryBuilder = queryBuilder.textSearch('search_document', tsQuery, { config: 'simple' });
+      }
+
+      if (sort === 'price-low') {
+        queryBuilder = queryBuilder.order('price', { ascending: true, nullsFirst: false });
+      } else if (sort === 'price-high') {
+        queryBuilder = queryBuilder.order('price', { ascending: false, nullsFirst: false });
+      } else {
+        queryBuilder = queryBuilder.order('created_at', { ascending: false });
+      }
+
+      const { data, error } = await queryBuilder;
+
+      if (!cancelled) {
+        if (!error && data) {
+          setSearchResult({ items: data, filters });
+        } else {
+          // If the view doesn't support search_document or fails, fallback to empty
+          setSearchResult({ items: [], filters });
+        }
+        setIsSearching(false);
+      }
+    };
+
+    runSearch();
+    return () => { cancelled = true; };
+  }, [debouncedQuery, category, availability, sort, loaded, store]);
+
+  const categories = useMemo(() => [...new Set(products.map((product) => String(product.category || '').trim()).filter(Boolean))].sort(), [products]);
+
   const bundles = useMemo(() => hydrateBundles(bundleRows, products), [bundleRows, products]);
   const visibleBundles = useMemo(() => {
     if (!debouncedQuery.trim()) return bundles.slice(0, 4);
