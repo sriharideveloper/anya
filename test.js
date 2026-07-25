@@ -1,0 +1,1 @@
+const { GoogleGenAI } = require('@google/genai'); const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); (async () => { try { for await (const m of ai.models.list()) { if (m.name.includes('imagen')) console.log(m.name); } } catch(e) { console.error(e.message); } })();

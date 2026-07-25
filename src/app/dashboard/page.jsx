@@ -428,11 +428,11 @@ export default function Dashboard() {
 
   const publish = async () => {
     if (!product || !selectedVisual || !store) return;
-    if (!product.title?.trim() || !product.description?.trim() || !Number.isFinite(Number(product.price)) || Number(product.price) < 0) {
+    if (!product.title?.trim() || !product.description?.trim() || product.price === '' || !Number.isFinite(Number(product.price)) || Number(product.price) < 0) {
       setMessage('Confirm a title, description, and selling price before publishing.');
       return;
     }
-    if (!Number.isInteger(Number(product.stockQuantity)) || Number(product.stockQuantity) < 0) {
+    if (product.stockQuantity === '' || !Number.isInteger(Number(product.stockQuantity)) || Number(product.stockQuantity) < 0) {
       setMessage('Enter the real stock quantity before publishing.');
       return;
     }

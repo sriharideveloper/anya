@@ -238,7 +238,7 @@
 @media (min-width: 1120px) {
   .visualsSection { grid-template-columns: 260px 1fr; }
   .visualsContainer { grid-template-columns: 420px 1fr; gap: 2.5rem; align-items: stretch; }
-  .visualGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+  .visualGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; align-content: start; }
   .inventoryImage { width: 90px; }
   .inventoryGrid article { grid-template-columns: 90px 1fr; }
 }
