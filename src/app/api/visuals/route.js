@@ -117,20 +117,7 @@ async function optimizeGeneratedImage(base64) {
   const source = Buffer.from(base64, 'base64');
   if (!source.length) throw new Error('The generated image was empty.');
 
-  const { data, error } = await client(process.env.SUPABASE_SERVICE_ROLE_KEY).storage
-    .from('product-images')
-    .upload(`${crypto.randomUUID()}.jpg`, source, { contentType: 'image/jpeg' });
-
-  if (error || !data?.path) {
-    console.error('Supabase upload failed:', error);
-    throw new Error('Could not upload the final image to storage.');
-  }
-
-  const { data: publicData } = client(process.env.SUPABASE_SERVICE_ROLE_KEY).storage
-    .from('product-images')
-    .getPublicUrl(data.path);
-
-  return { publicUrl: publicData.publicUrl, isGenerated: true };
+  return `data:image/jpeg;base64,${source.toString('base64')}`;
 }
 
 function pruneCache() {
