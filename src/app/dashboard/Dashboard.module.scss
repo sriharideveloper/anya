@@ -144,15 +144,21 @@
 .visualsSection { display: grid; gap: 1.5rem; }
 .visualsSection h2, .inventory h2 { margin: .55rem 0 0; font-family: var(--font-heading); font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 400; line-height: 1; }
 .visualsSection p { margin: .7rem 0 0; color: var(--text-secondary); font-size: .7rem; line-height: 1.5; }
-.visualGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
-.visualGrid article { overflow: hidden; border: 2px solid transparent; border-radius: var(--radius-md); background: var(--bg-card); transition: border-color .2s ease, transform .2s ease; }
+
+.visualsContainer { display: grid; gap: 1.5rem; align-items: start; }
+.largePreview { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: var(--radius-md); overflow: hidden; background: var(--bg-card); border: 2px solid var(--accent-primary); margin: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+.largePreview img { object-fit: cover; }
+.largePreview figcaption { position: absolute; bottom: 0; left: 0; right: 0; padding: 1.2rem .8rem .6rem; background: linear-gradient(to top, rgba(10,10,15,.95) 0%, rgba(10,10,15,0) 100%); color: #fffaf3; font-size: .85rem; font-weight: 500; text-align: center; font-family: var(--font-heading); }
+.visualGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.visualGrid article { overflow: hidden; border: 2px solid transparent; border-radius: var(--radius-md); background: var(--bg-card); transition: border-color .2s ease, transform .2s ease, opacity .2s ease; }
 .visualGrid article:hover { transform: translateY(-3px); }
-.visualGrid article.selected { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(150,54,46,.12); }
+.visualGrid article.selected { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(201,169,110,.12); }
+.visualGrid article:not(.visibleItem):not(.selected) { opacity: 0.6; }
 .visualCover { position: relative; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; padding: 0; border: 0; background: var(--bg-card); cursor: pointer; }
 .visualGrid img { object-fit: cover; }
-.visualCover span { position: absolute; right: .45rem; bottom: .45rem; left: .45rem; padding: .4rem; border-radius: 8px; background: rgba(43,29,25,.78); color: #fffaf3; font-size: .58rem; backdrop-filter: blur(10px); }
-.visualGrid article > label { display: flex; padding: .55rem; color: var(--text-secondary); cursor: pointer; align-items: center; justify-content: center; gap: .4rem; font-size: .56rem; font-weight: 600; }
-.visualGrid article > label input { accent-color: var(--accent-primary); }
+.visualCover span { position: absolute; right: .45rem; bottom: .45rem; left: .45rem; padding: .4rem; border-radius: 8px; background: rgba(22,22,31,.78); color: #f5f5f7; font-size: .65rem; backdrop-filter: blur(10px); }
+.visibilityToggle { display: flex; padding: .65rem; color: var(--text-secondary); cursor: pointer; align-items: center; justify-content: center; gap: .4rem; font-size: .65rem; font-weight: 500; }
+.visibilityToggle input { accent-color: var(--accent-primary); }
 .inventory > div:first-child { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
 .inventoryGrid { display: grid; margin-top: 1rem; gap: .55rem; }
 .inventoryGrid article { display: grid; padding: .65rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: rgba(255,250,243,.75); grid-template-columns: 64px 1fr; align-items: center; gap: .8rem; }
@@ -206,6 +212,7 @@
   .settingsFields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settingsControls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settingsControls > button { grid-column: 1 / -1; }
+  .settingsControls > button { grid-column: 1 / -1; }
   .visualGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (min-width: 820px) {
@@ -215,8 +222,9 @@
   .settingsControls > button { min-width: 160px; grid-column: auto; }
   .workspace { grid-template-columns: 1fr 1fr; align-items: stretch; }
   .uploadCard, .editor, .empty { min-height: 620px; }
-  .visualsSection { grid-template-columns: .75fr 1.25fr; align-items: start; }
-  .visualGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .visualsSection { grid-template-columns: 220px 1fr; align-items: start; }
+  .visualsContainer { grid-template-columns: 260px 1fr; }
+  .visualGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
 }
 
 @media (max-width: 599px) {
@@ -229,6 +237,8 @@
   .attributeEditor > span { grid-column: auto; }
 }
 @media (min-width: 1120px) {
-  .visualGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .inventoryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .visualsSection { grid-template-columns: 260px 1fr; }
+  .visualsContainer { grid-template-columns: 320px 1fr; gap: 2rem; }
+  .visualGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .inventoryImage { width: 90px; }
 }

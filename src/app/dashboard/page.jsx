@@ -875,17 +875,39 @@ export default function Dashboard() {
 
       {(visuals.length > 0 || image) && (
         <section className={styles.visualsSection}>
-          <div><span>Product gallery</span><h2>Choose the cover and public views.</h2><p>References stay private unless you mark them visible. Generated visuals are always optional.</p></div>
-          <div className={styles.visualGrid}>
-            {[...referenceImages, ...visuals].filter(Boolean).map((visual, index) => (
-              <article key={`${visual.slice(-28)}-${index}`} className={selectedVisual === visual ? styles.selected : ''}>
-                <button type="button" className={styles.visualCover} onClick={() => { setSelectedVisual(visual); setVisibleVisuals((current) => [...new Set([...current, visual])]); }}>
-                  <Image src={visual} alt={index < referenceImages.length ? `Reference ${index + 1}` : `Generated visual ${index - referenceImages.length + 1}`} fill unoptimized sizes="(max-width: 560px) 50vw, 220px" />
-                  <span>{index < referenceImages.length ? `Reference ${index + 1}` : `AI visual ${index - referenceImages.length + 1}`}</span>
-                </button>
-                <label><input type="checkbox" checked={visibleVisuals.includes(visual)} disabled={selectedVisual === visual} onChange={(event) => setVisibleVisuals((current) => event.target.checked ? [...new Set([...current, visual])] : current.filter((item) => item !== visual))} />{selectedVisual === visual ? 'Public cover' : 'Public'}</label>
-              </article>
-            ))}
+          <div className={styles.visualsHeader}>
+            <span>Product gallery</span>
+            <h2>Choose the cover and public views.</h2>
+            <p>References stay private unless you mark them visible. Generated visuals are always optional.</p>
+          </div>
+          <div className={styles.visualsContainer}>
+            {selectedVisual && (
+              <figure className={styles.largePreview}>
+                <Image src={selectedVisual} alt="Selected cover preview" fill unoptimized sizes="(max-width: 768px) 100vw, 320px" />
+                <figcaption>Cover Image</figcaption>
+              </figure>
+            )}
+            <div className={styles.visualGrid}>
+              {[...referenceImages, ...visuals].filter(Boolean).map((visual, index) => {
+                const isReference = index < referenceImages.length;
+                const label = isReference ? `Reference ${index + 1}` : `AI visual ${index - referenceImages.length + 1}`;
+                const isSelected = selectedVisual === visual;
+                const isVisible = visibleVisuals.includes(visual);
+
+                return (
+                  <article key={`${visual.slice(-28)}-${index}`} className={`${isSelected ? styles.selected : ''} ${isVisible ? styles.visibleItem : ''}`}>
+                    <button type="button" className={styles.visualCover} onClick={() => { setSelectedVisual(visual); setVisibleVisuals((current) => [...new Set([...current, visual])]); }}>
+                      <Image src={visual} alt={label} fill unoptimized sizes="(max-width: 560px) 50vw, 220px" />
+                      <span>{label}</span>
+                    </button>
+                    <label className={styles.visibilityToggle}>
+                      <input type="checkbox" checked={isVisible} disabled={isSelected} onChange={(event) => setVisibleVisuals((current) => event.target.checked ? [...new Set([...current, visual])] : current.filter((item) => item !== visual))} />
+                      {isSelected ? 'Cover Image' : 'Show Publicly'}
+                    </label>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </section>
       )}
