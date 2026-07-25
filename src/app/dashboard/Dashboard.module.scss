@@ -250,3 +250,22 @@
   .inventoryGrid article { grid-template-columns: 90px 1fr; }
 }
 
+.dangerZone { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed rgba(150,54,46,.25); }
+.deleteStoreBtn { padding: .6rem 1rem; border: 1px solid rgba(150,54,46,.4); border-radius: 8px; background: transparent; color: var(--accent-primary); cursor: pointer; font-size: .62rem; font-weight: 600; transition: all .2s ease; }
+.deleteStoreBtn:hover { background: rgba(150,54,46,.05); border-color: var(--accent-primary); }
+.deleteConfirm { display: grid; padding: 1.2rem; border: 1px solid rgba(150,54,46,.3); border-radius: var(--radius-md); background: rgba(150,54,46,.03); gap: .6rem; }
+.deleteConfirm strong { color: var(--accent-primary); font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.deleteConfirm p { margin: 0; color: var(--text-secondary); font-size: .62rem; line-height: 1.5; }
+.deleteConfirm em { color: var(--text-primary); font-weight: 600; font-style: normal; }
+.deleteConfirm input { width: 100%; max-width: 320px; padding: .6rem; border: 1px solid rgba(150,54,46,.4); border-radius: 6px; outline: 0; background: rgba(255,255,255,.8); color: var(--text-primary); font-size: .65rem; transition: border-color .2s ease; }
+.deleteConfirm input:focus { border-color: var(--accent-primary); }
+.deleteActions { display: flex; gap: .6rem; margin-top: .4rem; }
+.deleteActions button { padding: .65rem 1.2rem; border-radius: 8px; font-size: .62rem; font-weight: 600; cursor: pointer; transition: all .2s ease; }
+.deleteActions button:first-child { border: 1px solid var(--border-subtle); background: white; color: var(--text-primary); }
+.deleteActions button:first-child:hover { background: var(--bg-secondary); }
+.deleteConfirmBtn { border: 0; background: var(--accent-primary); color: white; }
+.deleteConfirmBtn:hover:not(:disabled) { background: #7e2b25; transform: translateY(-1px); }
+.deleteConfirmBtn:disabled { opacity: .5; cursor: not-allowed; }
+
+
+ . d a n g e r Z o n e   {   m a r g i n - t o p :   1 . 5 r e m ;   p a d d i n g - t o p :   1 . 5 r e m ;   b o r d e r - t o p :   1 p x   d a s h e d   r g b a ( 1 5 0 , 5 4 , 4 6 , . 2 5 ) ;   } 

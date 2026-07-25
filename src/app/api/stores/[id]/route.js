@@ -132,3 +132,61 @@ export async function PATCH(request, context) {
     return NextResponse.json({ error: 'The storefront settings could not be saved.' }, { status: 500 });
   }
 }
+
+export async function DELETE(request, context) {
+  try {
+    const { id } = await context.params;
+    if (!UUID_PATTERN.test(id || '')) {
+      return NextResponse.json({ error: 'Choose a valid storefront.' }, { status: 400 });
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Send a valid JSON request.' }, { status: 400 });
+    }
+
+    const accessToken = typeof body.accessToken === 'string' ? body.accessToken.trim() : '';
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Sign in again before deleting a store.' }, { status: 401 });
+    }
+
+    const required = [
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+    ];
+    if (required.some((value) => !value)) {
+      return NextResponse.json({ error: 'Server-side storefront updates are not configured.' }, { status: 503 });
+    }
+
+    const userClient = supabaseClient(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    const { data: userData, error: userError } = await userClient.auth.getUser(accessToken);
+    if (userError || !userData.user) {
+      return NextResponse.json({ error: 'Your session expired. Sign in and try again.' }, { status: 401 });
+    }
+
+    const admin = supabaseClient(process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const { data: deletedStore, error: deleteError } = await admin
+      .from('stores')
+      .delete()
+      .eq('id', id)
+      .eq('owner_id', userData.user.id)
+      .select('id')
+      .maybeSingle();
+
+    if (deleteError) {
+      console.error('Store deletion failed:', deleteError);
+      return NextResponse.json({ error: 'The storefront could not be deleted.' }, { status: 500 });
+    }
+    if (!deletedStore) {
+      return NextResponse.json({ error: 'This storefront does not exist or does not belong to you.' }, { status: 403 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Store deletion failed:', error);
+    return NextResponse.json({ error: 'The storefront could not be deleted.' }, { status: 500 });
+  }
+}

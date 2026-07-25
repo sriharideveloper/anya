@@ -212,6 +212,9 @@ export default function Dashboard() {
   const [detailsContext, setDetailsContext] = useState('');
   const [visualsContext, setVisualsContext] = useState('');
   const [showContext, setShowContext] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [deleteStatus, setDeleteStatus] = useState('idle');
   const visualGeneration = useRef(0);
 
   const loadDraft = useCallback((storeId) => {
@@ -690,6 +693,36 @@ export default function Dashboard() {
     }
   };
 
+  const deleteStore = async () => {
+    if (deleteConfirmName !== store.store_name) return;
+    setDeleteStatus('deleting');
+    setSettingsFeedback({ type: '', text: '' });
+    try {
+      const response = await fetch(`/api/stores/${store.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        body: JSON.stringify({ accessToken: session.access_token }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Store could not be deleted.');
+      
+      const newStores = stores.filter(s => s.id !== store.id);
+      setStores(newStores);
+      if (newStores.length > 0) {
+        await switchStore(newStores[0].id);
+      } else {
+        setStore(null);
+      }
+      setShowDeleteConfirm(false);
+      setDeleteConfirmName('');
+    } catch (error) {
+      setSettingsFeedback({ type: 'error', text: error.message });
+    } finally {
+      setDeleteStatus('idle');
+    }
+  };
+
   const logout = async () => {
     await createClient().auth.signOut();
     window.location.reload();
@@ -840,6 +873,22 @@ export default function Dashboard() {
             </p>
           )}
         </form>
+        <div className={styles.dangerZone}>
+          {!showDeleteConfirm ? (
+            <button type="button" className={styles.deleteStoreBtn} onClick={() => setShowDeleteConfirm(true)}>Delete Storefront</button>
+          ) : (
+            <div className={styles.deleteConfirm}>
+              <strong>Danger Zone</strong>
+              <p>Deleting your storefront is permanent. This will remove all products and images.</p>
+              <p>Type <em>{store.store_name}</em> to confirm.</p>
+              <input value={deleteConfirmName} onChange={(e) => setDeleteConfirmName(e.target.value)} placeholder={store.store_name} />
+              <div className={styles.deleteActions}>
+                <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(''); }}>Cancel</button>
+                <button type="button" onClick={deleteStore} disabled={deleteConfirmName !== store.store_name || deleteStatus === 'deleting'} className={styles.deleteConfirmBtn}>{deleteStatus === 'deleting' ? 'Deleting...' : 'Permanently Delete'}</button>
+              </div>
+            </div>
+          )}
+        </div>
       </motion.section>
 
       <section className={styles.sellerPulse} aria-label="Storefront performance">
