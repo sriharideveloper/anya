@@ -14,7 +14,15 @@ alter table public.products
   add column if not exists audience_tags text[] not null default '{}',
   add column if not exists attributes jsonb not null default '{}'::jsonb,
   add column if not exists detection_confidence numeric(5,4),
-  add column if not exists search_document tsvector;
+  add column if not exists search_document tsvector,
+  add column if not exists compare_at_price numeric(10,2)
+    check (compare_at_price is null or compare_at_price >= 0),
+  add column if not exists stock_quantity integer not null default 1
+    check (stock_quantity >= 0),
+  add column if not exists occasion text,
+  add column if not exists color_palette jsonb,
+  add column if not exists vibe_tags text[] not null default '{}',
+  add column if not exists view_count integer not null default 0 check (view_count >= 0);
 
 do $$
 begin
