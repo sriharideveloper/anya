@@ -14,6 +14,13 @@
 .page header { position: relative; padding: 3.5rem 0 2.5rem; overflow: hidden; }
 .page header::after { position: absolute; z-index: -1; right: 0; bottom: -0.16em; color: rgba(150,54,46,.05); content: 'സാരി'; font-family: var(--font-malayalam); font-size: clamp(7rem, 18vw, 14rem); font-weight: 700; line-height: 1; }
 .page header > span, .inventory > div > span, .visualsSection > div > span { color: var(--accent-primary); font-size: 0.65rem; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; }
+.contextToggle { width: 100%; padding: .65rem; border: 1px dashed var(--border-subtle); border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: .62rem; font-weight: 600; transition: all .2s ease; }
+.contextToggle:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+.contextDrawer { overflow: hidden; }
+.contextForm { display: grid; padding: .8rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: rgba(255,255,255,.45); gap: .75rem; margin-top: .4rem; }
+.contextForm label { display: grid; color: var(--text-secondary); font-size: .62rem; font-weight: 600; gap: .3rem; }
+.contextForm textarea { width: 100%; min-height: 55px; padding: .6rem; border: 1px solid var(--border-subtle); border-radius: 6px; outline: 0; background: rgba(255,250,243,.9); color: var(--text-primary); font-family: var(--font-body); font-size: .62rem; resize: vertical; transition: border-color .2s ease; }
+.contextForm textarea:focus { border-color: var(--accent-primary); }
 .page header h1 { margin: 0.7rem 0 1rem; font-family: var(--font-heading); font-size: clamp(3.1rem, 8vw, 6.5rem); font-weight: 400; letter-spacing: -0.05em; line-height: 0.87; }
 .page header h1 em { color: var(--accent-primary); font-weight: 400; }
 .page header p { max-width: 680px; margin: 0; color: var(--text-secondary); font-size: 0.84rem; line-height: 1.65; }
@@ -243,11 +250,3 @@
   .inventoryGrid article { grid-template-columns: 90px 1fr; }
 }
 
- . c o n t e x t T o g g l e   {   w i d t h :   1 0 0 % ;   p a d d i n g :   . 6 5 r e m ;   b o r d e r :   1 p x   d a s h e d   v a r ( - - b o r d e r - s u b t l e ) ;   b o r d e r - r a d i u s :   v a r ( - - r a d i u s - s m ) ;   b a c k g r o u n d :   t r a n s p a r e n t ;   c o l o r :   v a r ( - - t e x t - s e c o n d a r y ) ;   c u r s o r :   p o i n t e r ;   f o n t - s i z e :   . 6 2 r e m ;   f o n t - w e i g h t :   6 0 0 ;   t r a n s i t i o n :   a l l   . 2 s   e a s e ;   } 
- . c o n t e x t T o g g l e : h o v e r   {   b o r d e r - c o l o r :   v a r ( - - a c c e n t - p r i m a r y ) ;   c o l o r :   v a r ( - - a c c e n t - p r i m a r y ) ;   } 
- . c o n t e x t D r a w e r   {   o v e r f l o w :   h i d d e n ;   } 
- . c o n t e x t F o r m   {   d i s p l a y :   g r i d ;   p a d d i n g :   . 8 r e m ;   b o r d e r :   1 p x   s o l i d   v a r ( - - b o r d e r - s u b t l e ) ;   b o r d e r - r a d i u s :   v a r ( - - r a d i u s - s m ) ;   b a c k g r o u n d :   r g b a ( 2 5 5 , 2 5 5 , 2 5 5 , . 4 5 ) ;   g a p :   . 7 5 r e m ;   m a r g i n - t o p :   . 4 r e m ;   } 
- . c o n t e x t F o r m   l a b e l   {   d i s p l a y :   g r i d ;   c o l o r :   v a r ( - - t e x t - s e c o n d a r y ) ;   f o n t - s i z e :   . 6 2 r e m ;   f o n t - w e i g h t :   6 0 0 ;   g a p :   . 3 r e m ;   } 
- . c o n t e x t F o r m   t e x t a r e a   {   w i d t h :   1 0 0 % ;   m i n - h e i g h t :   5 5 p x ;   p a d d i n g :   . 6 r e m ;   b o r d e r :   1 p x   s o l i d   v a r ( - - b o r d e r - s u b t l e ) ;   b o r d e r - r a d i u s :   6 p x ;   o u t l i n e :   0 ;   b a c k g r o u n d :   r g b a ( 2 5 5 , 2 5 0 , 2 4 3 , . 9 ) ;   c o l o r :   v a r ( - - t e x t - p r i m a r y ) ;   f o n t - f a m i l y :   v a r ( - - f o n t - b o d y ) ;   f o n t - s i z e :   . 6 2 r e m ;   r e s i z e :   v e r t i c a l ;   t r a n s i t i o n :   b o r d e r - c o l o r   . 2 s   e a s e ;   } 
- . c o n t e x t F o r m   t e x t a r e a : f o c u s   {   b o r d e r - c o l o r :   v a r ( - - a c c e n t - p r i m a r y ) ;   }  
- 

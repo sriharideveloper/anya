@@ -1,5 +1,6 @@
 import { Instrument_Serif, Poppins } from 'next/font/google';
 import LenisProvider from '@/components/LenisProvider/LenisProvider';
+import { Analytics } from '@vercel/analytics/react';
 import './globals.scss';
 
 const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
@@ -65,6 +66,7 @@ export default function RootLayout({ children }) {
           ))}
         </div>
         <LenisProvider>{children}</LenisProvider>
+        <Analytics />
       </body>
     </html>
   );
