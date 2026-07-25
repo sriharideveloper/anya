@@ -214,6 +214,44 @@ export default function Dashboard() {
   const [showContext, setShowContext] = useState(false);
   const visualGeneration = useRef(0);
 
+  const loadDraft = useCallback((storeId) => {
+    try {
+      const draftData = window.localStorage.getItem(`anya-draft-${storeId}`);
+      if (draftData) {
+        const draft = JSON.parse(draftData);
+        if (Date.now() - draft.updatedAt < 24 * 60 * 60 * 1000) {
+          if (draft.product) setProduct(draft.product);
+          if (draft.detailsContext) setDetailsContext(draft.detailsContext);
+          if (draft.visualsContext) setVisualsContext(draft.visualsContext);
+          if (draft.product || draft.detailsContext || draft.visualsContext) {
+            setMessage('Your previous draft was restored. Re-upload your product images to continue.');
+            setShowContext(!!(draft.detailsContext || draft.visualsContext));
+          }
+          return;
+        }
+      }
+    } catch (e) {}
+    setProduct(null);
+    setDetailsContext('');
+    setVisualsContext('');
+    setShowContext(false);
+  }, []);
+
+  useEffect(() => {
+    if (!store) return;
+    const draftKey = `anya-draft-${store.id}`;
+    if (product || detailsContext || visualsContext) {
+      window.localStorage.setItem(draftKey, JSON.stringify({
+        product,
+        detailsContext,
+        visualsContext,
+        updatedAt: Date.now()
+      }));
+    } else {
+      window.localStorage.removeItem(draftKey);
+    }
+  }, [product, detailsContext, visualsContext, store]);
+
   const loadProducts = useCallback(async (storeId) => {
     const supabase = createClient();
     const { data } = await supabase.from('products').select(SELLER_PRODUCT_FIELDS).eq('store_id', storeId).order('created_at', { ascending: false });
@@ -259,9 +297,12 @@ export default function Dashboard() {
     setStores(sellerStores);
     setStore(activeStore);
     setSettingsForm(storeSettings(activeStore));
-    if (activeStore) await loadProducts(activeStore.id);
+    if (activeStore) {
+      await loadProducts(activeStore.id);
+      loadDraft(activeStore.id);
+    }
     setLoading(false);
-  }, [loadProducts]);
+  }, [loadProducts, loadDraft]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -281,6 +322,7 @@ export default function Dashboard() {
     setMessage('');
     window.localStorage.setItem('anya-active-store', nextStore.id);
     await loadProducts(nextStore.id);
+    loadDraft(nextStore.id);
   };
 
   useEffect(() => {
@@ -486,6 +528,10 @@ export default function Dashboard() {
       setVisuals([]);
       setVisibleVisuals([]);
       setProduct(null);
+      setDetailsContext('');
+      setVisualsContext('');
+      setShowContext(false);
+      window.localStorage.removeItem(`anya-draft-${store.id}`);
       setPipelineMeta({ merchandise: null, visuals: null });
       setMessage(data.bundle ? 'Published with a complementary bundle. Your storefront is live.' : 'Published. Add one more product to create an automatic bundle.');
     } catch (error) {
