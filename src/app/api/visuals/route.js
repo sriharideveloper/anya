@@ -117,23 +117,20 @@ async function optimizeGeneratedImage(base64) {
   const source = Buffer.from(base64, 'base64');
   if (!source.length) throw new Error('The generated image was empty.');
 
-  let output = await sharp(source)
-    .rotate()
-    .resize({ width: 1400, height: 1750, fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: 82, progressive: true, mozjpeg: true })
-    .toBuffer();
+  const { data, error } = await client(process.env.SUPABASE_SERVICE_ROLE_KEY).storage
+    .from('product-images')
+    .upload(`${crypto.randomUUID()}.jpg`, source, { contentType: 'image/jpeg' });
 
-  if (output.length > 2.5 * 1024 * 1024) {
-    output = await sharp(source)
-      .rotate()
-      .resize({ width: 1100, height: 1375, fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 72, progressive: true, mozjpeg: true })
-      .toBuffer();
+  if (error || !data?.path) {
+    console.error('Supabase upload failed:', error);
+    throw new Error('Could not upload the final image to storage.');
   }
-  if (output.length > 2.8 * 1024 * 1024) {
-    throw new Error('The generated visual could not be optimized for delivery.');
-  }
-  return `data:image/jpeg;base64,${output.toString('base64')}`;
+
+  const { data: publicData } = client(process.env.SUPABASE_SERVICE_ROLE_KEY).storage
+    .from('product-images')
+    .getPublicUrl(data.path);
+
+  return { publicUrl: publicData.publicUrl, isGenerated: true };
 }
 
 function pruneCache() {
@@ -253,7 +250,6 @@ export async function POST(request) {
                 })),
               ],
               response_format: { type: 'image', aspect_ratio: '4:5' },
-              generation_config: { thinking_level: 'low' },
             });
             const generated = findImage(interaction);
             if (!generated?.data) throw new Error('No image was returned.');
