@@ -147,8 +147,9 @@ async function idempotent(key, fingerprint, work) {
   }
 }
 
-function buildPrompt(product, index, count) {
+function buildPrompt(product, index, count, visualContext) {
   const brief = product.visualBrief || {};
+  const sellerContextText = visualContext ? `\n\nADDITIONAL SELLER VISUAL CONTEXT:\n${cleanString(visualContext, 1000)}\nPlease adhere to these specific seller instructions when styling the output image.` : '';
   return `Create premium product photography for reference-accurate ecommerce.
 The ${count} requested outputs are deliberate seller-selected variants; create visual ${index + 1} of ${count}.
 
@@ -179,7 +180,7 @@ Choose presentation from the confirmed product type:
 Keep presentation family-safe and non-sexualized. Use realistic anatomy, restrained styling,
 warm premium editorial lighting, and a clean Kerala-inspired neutral setting where suitable.
 The product is the hero. No text, logos, watermarks, duplicated objects, distorted hands,
-or misleading changes. Use a distinct tasteful composition for this output.`;
+or misleading changes. Use a distinct tasteful composition for this output.${sellerContextText}`;
 }
 
 export async function POST(request) {
@@ -229,7 +230,7 @@ export async function POST(request) {
             const interaction = await ai.interactions.create({
               model: MODEL,
               input: [
-                { type: 'text', text: buildPrompt(product, variationIndex, 5) },
+                { type: 'text', text: buildPrompt(product, variationIndex, 5, body.visualContext) },
                 ...references.map((reference) => ({
                   type: 'image',
                   data: reference.data,

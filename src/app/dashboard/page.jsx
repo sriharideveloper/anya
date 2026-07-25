@@ -209,6 +209,9 @@ export default function Dashboard() {
   const [settingsStatus, setSettingsStatus] = useState('idle');
   const [settingsFeedback, setSettingsFeedback] = useState({ type: '', text: '' });
   const [showStoreCreator, setShowStoreCreator] = useState(false);
+  const [detailsContext, setDetailsContext] = useState('');
+  const [visualsContext, setVisualsContext] = useState('');
+  const [showContext, setShowContext] = useState(false);
   const visualGeneration = useRef(0);
 
   const loadProducts = useCallback(async (storeId) => {
@@ -354,7 +357,7 @@ export default function Dashboard() {
       const response = await fetch('/api/merchandise', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: session.access_token, image, images: referenceImages, mimeType: 'image/jpeg' }),
+        body: JSON.stringify({ accessToken: session.access_token, image, images: referenceImages, mimeType: 'image/jpeg', sellerContext: detailsContext }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
@@ -395,6 +398,7 @@ export default function Dashboard() {
             count: 1,
             variationIndex: visuals.length + index,
             product,
+            visualContext: visualsContext,
           }),
         });
         const data = await response.json();
@@ -806,6 +810,25 @@ export default function Dashboard() {
             <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={selectImage} />
           </label>
           <div className={styles.generationActions}>
+            <button className={styles.contextToggle} onClick={() => setShowContext(!showContext)}>
+              {showContext ? 'Hide instructions' : 'Add custom instructions'}
+            </button>
+            <AnimatePresence>
+              {showContext && (
+                <motion.div className={styles.contextDrawer} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+                  <div className={styles.contextForm}>
+                    <label>
+                      <span>Product details context</span>
+                      <textarea placeholder="e.g. Highlight that this is hand-woven pure silk from Kanchipuram..." value={detailsContext} onChange={(e) => setDetailsContext(e.target.value)} />
+                    </label>
+                    <label>
+                      <span>Visual generation context</span>
+                      <textarea placeholder="e.g. Put the model in a minimal modern setting with warm sunset lighting..." value={visualsContext} onChange={(e) => setVisualsContext(e.target.value)} />
+                    </label>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <button className={styles.generate} onClick={generateProduct} disabled={!image || status === 'generating' || status === 'publishing'}>{status === 'generating' ? GENERATION_STAGES[generationStage] : 'Generate product details'}</button>
             <div className={styles.visualControl}>
               <select value={visualCount} onChange={(event) => setVisualCount(Number(event.target.value))} aria-label="Number of model visuals">

@@ -351,8 +351,11 @@ export async function POST(request) {
       const correctionContext = Object.keys(corrections).length
         ? `\nAUTHORITATIVE SELLER CORRECTIONS:\n${JSON.stringify(corrections)}`
         : '\nNo seller corrections were supplied.';
+      const sellerContextText = body.sellerContext
+        ? `\nADDITIONAL SELLER CONTEXT:\n${cleanString(body.sellerContext, 1000)}\nPlease adhere to these specific seller instructions when generating the product details.`
+        : '';
       const result = await generateWithOneRetry(model, [
-        `${prompt}${correctionContext}`,
+        `${prompt}${correctionContext}${sellerContextText}`,
         ...references.map((reference) => ({
           inlineData: { data: reference.data, mimeType: reference.mimeType },
         })),
