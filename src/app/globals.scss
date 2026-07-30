@@ -28,7 +28,7 @@
 }
 
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
   scroll-behavior: smooth;
 }
 
@@ -36,7 +36,7 @@ body {
   position: relative;
   min-height: 100vh;
   margin: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
   background:
     radial-gradient(circle at 85% 5%, rgba(150, 54, 46, 0.065), transparent 28rem),
     radial-gradient(circle at 0 75%, rgba(102, 69, 49, 0.05), transparent 30rem),
