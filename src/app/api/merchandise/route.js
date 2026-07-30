@@ -202,7 +202,11 @@ function validateProduct(data, corrections) {
       ? rawSuggestion.recommended
       : rawSuggestion ?? data?.price,
   );
-  const confidence = Math.min(100, Math.max(0, Math.round(Number(data?.confidence) || 0)));
+  let rawConfidence = Number(data?.confidence) || 0;
+  if (rawConfidence > 0 && rawConfidence <= 1) {
+    rawConfidence *= 100;
+  }
+  const confidence = Math.min(100, Math.max(0, Math.round(rawConfidence)));
   const attributes = cleanObject(data?.attributes);
   const product = {
     title,
