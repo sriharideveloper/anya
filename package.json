@@ -11,6 +11,7 @@
   "dependencies": {
     "@google/genai": "^2.12.0",
     "@google/generative-ai": "0.24.1",
+    "@studio-freight/lenis": "^1.0.42",
     "@supabase/ssr": "0.12.3",
     "@supabase/supabase-js": "2.110.7",
     "@vercel/analytics": "^2.0.1",
