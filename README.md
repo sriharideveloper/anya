@@ -82,7 +82,7 @@ Open [http://localhost:3000](http://localhost:3000). For a production check, run
 
 In a new Supabase project:
 
-1. Keep the Email auth provider enabled. Set the Auth Site URL to `http://localhost:3000` while developing and add the deployed `/dashboard` redirect URL for production.
+1. Keep the Email auth provider enabled. Set the Auth Site URL to `http://localhost:3000` while developing. Allow `http://localhost:3000/dashboard` and `http://localhost:3000/reset-password` locally, plus the deployed `/dashboard` and `/reset-password` URLs in production.
 2. Open the SQL Editor and run [`.agents/skills/anya-supabase-setup/supabase-setup.sql`](./.agents/skills/anya-supabase-setup/supabase-setup.sql) in full for a new database.
 3. Run the single forward migration [`.agents/skills/anya-supabase-setup/product-generalization.sql`](./.agents/skills/anya-supabase-setup/product-generalization.sql) in full. Existing databases only need this step; it is transactional, preserves current products, and is safe to rerun.
 
