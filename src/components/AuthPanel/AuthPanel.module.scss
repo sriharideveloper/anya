@@ -56,6 +56,12 @@
 .switcher { display: grid; padding: 0.25rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-secondary); grid-template-columns: 1fr 1fr; }
 .switcher button { padding: 0.75rem; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); cursor: pointer; }
 .switcher .active { background: var(--bg-card); color: var(--text-primary); }
+.resetIntro {
+  span { color: var(--accent-primary); font-size: .65rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+  h2 { margin: .35rem 0 .3rem; font-family: var(--font-heading); font-size: 2rem; font-weight: 400; }
+  p { margin: 0; color: var(--text-secondary); font-size: .72rem; line-height: 1.55; }
+}
+.textButton { justify-self: start; padding: 0; border: 0; background: transparent; color: var(--accent-primary); font-size: .7rem; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .submit { padding: 1rem; border: 0; border-radius: var(--radius-sm); background: var(--accent-primary); color: #fffaf3; font-weight: 600; cursor: pointer; transition: transform 0.2s ease, background 0.2s ease; }
 .submit:hover:not(:disabled) { background: #7e2b25; transform: translateY(-2px); }
 .submit:disabled { opacity: 0.5; }
