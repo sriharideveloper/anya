@@ -16,20 +16,30 @@ export default function AuthPanel() {
     event.preventDefault();
     setBusy(true);
     setMessage('');
-    const supabase = createClient();
 
-    const { error, data } = mode === 'signin'
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: `${window.location.origin}/dashboard` },
-      });
+    try {
+      const supabase = createClient();
+      const { error, data } = mode === 'signin'
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+        });
 
-    if (error) setMessage(error.message);
-    else if (mode === 'signup' && !data.session) setMessage('Check your email to confirm the account, then sign in.');
-    else window.location.reload();
-    setBusy(false);
+      if (error) setMessage(error.message);
+      else if (mode === 'signup' && !data.session) setMessage('Check your email to confirm the account, then sign in.');
+      else window.location.reload();
+    } catch (error) {
+      console.error('Supabase authentication failed:', error);
+      setMessage(
+        error?.code === 'SUPABASE_CONFIG_ERROR'
+          ? 'Seller access is not configured. Please contact support.'
+          : 'Seller access is temporarily unavailable. Please try again shortly.',
+      );
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -53,7 +63,7 @@ export default function AuthPanel() {
         <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" /></label>
         <label>Password<input type="password" minLength="6" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} /></label>
         <button className={styles.submit} disabled={busy}>{busy ? 'Opening studio…' : mode === 'signin' ? 'Open Seller Studio' : 'Create seller account'}</button>
-        {message && <p className={styles.message}>{message}</p>}
+        {message && <p className={styles.message} role="status" aria-live="polite">{message}</p>}
       </form>
     </motion.section>
   );
